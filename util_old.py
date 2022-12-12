@@ -18,7 +18,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 
-class PsuWindow(QMainWindow):
+class PsuInitWindow(QMainWindow):
     def __init__(self, parametersdictionary):
         super().__init__()
         self.parametersdictionary = parametersdictionary
