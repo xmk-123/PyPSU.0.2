@@ -15,21 +15,21 @@ class MainWindow(QMainWindow):
                                      "name": "PSU Vds",
                                      "label": object(),
                                      "PSU button": object(),
-                                     "Start V": {"value": 0, "widget": object()},
-                                     "End V": {"value": 0, "widget": object()},
-                                     "Max I": {"value": 0, "widget": object()},
-                                     "Step V": {"value": 0, "widget": object()},
-                                     "Polarity": {"value": True, "widget": object()}}
+                                     "Start V": object(),
+                                     "End V": object(),
+                                     "Max I": object(),
+                                     "Step V": object(),
+                                     "Polarity": object()}
 
         self.psuVgsTestParameters = {"psuobject": self.psuVgs,
                                      "name": "PSU Vgs",
                                      "label": object(),
                                      "PSU button": object(),
-                                     "Start V": {"value": 0, "widget": object()},
-                                     "End V": {"value": 0, "widget": object()},
-                                     "Max I": {"value": 0, "widget": object()},
-                                     "Step V": {"value": 0, "widget": object()},
-                                     "Polarity": {"value": True, "widget": object()}}
+                                     "Start V": object(),
+                                     "End V": object(),
+                                     "Max I": object(),
+                                     "Step V": object(),
+                                     "Polarity": object()}
 
         self.dutTestParameters = {"Idle sec": 0, "Preheat sec": 0, "Max Power": 0}
 
@@ -199,17 +199,16 @@ class ParametersPaneWidget(QWidget):
         self.PaneLayout = QVBoxLayout()
         for p in parametersdictionary.keys():
             if p not in ("Polarity", "name", "psuobject", "label", "PSU button"):
-                parametersdictionary[p]["widget"] = ParameterWidget(p, parametersdictionary[p]["value"])
-                self.PaneLayout.addWidget(parametersdictionary[p]["widget"])
+                parametersdictionary[p] = ParameterWidget(p)
+                self.PaneLayout.addWidget(parametersdictionary[p])
                 self.PaneLayout.addStretch()
         self.setLayout(self.PaneLayout)
 
 
 class ParameterWidget(QWidget):
-    def __init__(self, parameter, dictionaryvalue):
+    def __init__(self, parameter):
         super().__init__()
         self.parameter = parameter
-        self.dictionaryvalue = dictionaryvalue
 
         self.layout = QHBoxLayout()
 
@@ -224,12 +223,8 @@ class ParameterWidget(QWidget):
         self.widgetSpinbox.setMaximum(100)
         self.widgetSpinbox.setSingleStep(0.01)
         self.layout.addWidget(self.widgetSpinbox)
-        self.widgetSpinbox.valueChanged.connect(self.updatevalue)
 
         self.setLayout(self.layout)
-
-    def updatevalue(self, value):
-        self.dictionaryvalue = value
 
 
 class PsuButtonBox(QWidget):
@@ -239,8 +234,8 @@ class PsuButtonBox(QWidget):
         self.parametersdictionary = parametersdictionary
 
         self.layout = QVBoxLayout()
-        self.button = QPushButton("                   +\n  " + self.parametersdictionary["name"]
-                                  + "  \n                  -")
+        self.button = QPushButton("+                  +\n  " + self.parametersdictionary["name"]
+                                  + "  \n-                 -")
         stylesheet = "QWidget {background-color: QLinearGradient(y1:0, y2:1, stop: 0.49 red, stop: 0.51 dimgrey)}"
         self.button.setStyleSheet(stylesheet)
         self.button.setMinimumSize(150, 65)
@@ -262,11 +257,11 @@ class PsuButtonBox(QWidget):
         if value:
             stylesheet = "QWidget {background-color: QLinearGradient(y1:0, y2:1, stop: 0.49 red, stop: 0.51 dimgrey)}"
             self.button.setStyleSheet(stylesheet)
-            self.button.setText('                   +\n  PSU Vgs  \n                  -')
+            self.button.setText('+                  +\n  PSU Vgs  \n-                 -')
         else:
             stylesheet = "QWidget {background-color: QLinearGradient(y1:0, y2:1, stop: 0.49 dimgrey, stop: 0.51 red)}"
             self.button.setStyleSheet(stylesheet)
-            self.button.setText('                   -\n  PSU Vgs  \n                  +')
+            self.button.setText('-                  -\n  PSU Vgs  \n+                 +')
 
 
 app = QApplication(sys.argv)
