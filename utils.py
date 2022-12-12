@@ -60,11 +60,13 @@ class PsuWindow(QMainWindow):
         self.layout.addStretch()
 
     # Polarity
-        RadioPolarity = QRadioButton("N channel / Source negative")
+        RadioPolarity = QRadioButton("Source negative")
         self.layout.addWidget(RadioPolarity)
-        RadioPolarity.setChecked(self.parametersdictionary["Polarity"]["value"])
+        RadioPolarity.setChecked(True)
+        self.parametersdictionary["Polarity"] = RadioPolarity
+        RadioPolarity.setChecked(self.parametersdictionary["Polarity"].isChecked())
         RadioPolarity.toggled.connect(self.SetPolarity)
-        RadioPolarity2 = QRadioButton("P channel / Source positive")
+        RadioPolarity2 = QRadioButton("Source positive")
         self.layout.addWidget(RadioPolarity2)
 
         self.layout.addStretch()
