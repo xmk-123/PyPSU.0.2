@@ -8,19 +8,18 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
                              QPushButton, QDoubleSpinBox, QVBoxLayout, QLabel, QSpinBox)
 
+from powersupply_EMPTY import EmptyPSU
+from powersupply_KORAD import KORAD
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.VgsPSU = curvetracePSU.CurvetracePSU(powersupply_EMPTY.EmptyPSU(), "Vgs PSU")
-        self.VdsPSU = curvetracePSU.CurvetracePSU(powersupply_EMPTY.EmptyPSU(), "Vds PSU")
-        # self.VgsPSU = curvetracePSU.CurvetracePSU(powersupply_KORAD.KORAD(), "Vgs PSU")
-        # self.VdsPSU = curvetracePSU.CurvetracePSU("Vds PSU")
+        self.VgsPSU = curvetracePSU.createPSUclass(EmptyPSU)()
+        self.VdsPSU = curvetracePSU.createPSUclass(EmptyPSU)()
 
-        self.psuVds = None  # object()
-        self.psuVgs = None  # object()object()
-        self.psuVdsTestParameters = {"psuobject": self.psuVds,
+        self.psuVdsTestParameters = {
                                      "name": "PSU Vds",
                                      "label": object(),
                                      "PSU button": object(),
@@ -30,7 +29,7 @@ class MainWindow(QMainWindow):
                                      "Step V": object(),
                                      "Polarity": object()}
 
-        self.psuVgsTestParameters = {"psuobject": self.psuVgs,
+        self.psuVgsTestParameters = {
                                      "name": "PSU Vgs",
                                      "label": object(),
                                      "PSU button": object(),
@@ -46,7 +45,7 @@ class MainWindow(QMainWindow):
 
     def builtui(self):
 
-        self.setWindowTitle("Curvetrace 0.1")
+        self.setWindowTitle("Curvetrace 0.2")
         self.window = QWidget()
         self.mainlayout = QVBoxLayout()
 
@@ -67,23 +66,36 @@ class MainWindow(QMainWindow):
         self.window.setLayout(self.mainlayout)
 
 # top center pane start
-        self.PsuVgsLabel = QLabel("")
+        self.PsuVgsLabel = QLabel(self.VgsPSU.name)
         self.PsuVgsLabel.setMinimumSize(110, 50)
         self.layouttopcentertopH.addWidget(self.PsuVgsLabel)
-        self.psuVgsTestParameters["label"] = self.PsuVgsLabel
 
         self.layouttopcentertopH.addStretch()
 
-        self.PsuVdsLabel = QLabel("")
+        self.PsuVdsLabel = QLabel(self.VdsPSU.name)
         self.PsuVdsLabel.setMinimumSize(110, 50)
         self.layouttopcentertopH.addWidget(self.PsuVdsLabel)
-        self.psuVdsTestParameters["label"] = self.PsuVdsLabel
 
     # top center top end
     # top center middle start
 
-        self.Vgspsusetup = setup.PsuSetup()
-        self.layouttopcentermiddleH.addWidget(self.Vgspsusetup.window)
+        self._psuVgsbutton = PsuButtonBox(self.VgsPSU, "Vds PSU")
+        self.layouttopcentermiddleH.addWidget(self._psuVgsbutton)
+
+        self.layouttopcentermiddleH.addStretch()
+
+        self.dut = QPushButton()
+        self.dut.setObjectName("dut")
+        self.dut.setMinimumSize(150, 150)
+        #self.dut.clicked.connect(self.test)
+        self.dut.setIcon(QIcon('Nmos.png'))
+        self.dut.setIconSize(QtCore.QSize(130, 130))
+        self.layouttopcentermiddleH.addWidget(self.dut)
+
+        self.layouttopcentermiddleH.addStretch()
+
+        self._psuVdsbutton = PsuButtonBox(self.VdsPSU, "Vgs PSU")
+        self.layouttopcentermiddleH.addWidget(self._psuVdsbutton)
 
 
     # top center middle end
@@ -161,6 +173,39 @@ class MainWindow(QMainWindow):
         self.mainlayout.addStretch()
         self.mainlayout.addLayout(self.layouttopbottomV)
         self.mainlayout.addStretch()
+
+
+class PsuButtonBox(QWidget):
+    def __init__(self, psu, buttontxt):
+        super().__init__()
+        self.PsuSetupWin = None
+
+        _layout = QVBoxLayout()
+        self.button = QPushButton("+                  +\n  " + buttontxt
+                                  + "  \n-                 -")
+        stylesheet = "QWidget {background-color: QLinearGradient(y1:0, y2:1, stop: 0.49 red, stop: 0.51 dimgrey)}"
+        self.button.setStyleSheet(stylesheet)
+        self.button.setMinimumSize(150, 65)
+        _layout.addWidget(self.button)
+        self.button.clicked.connect(lambda a: self.openpsuwindow(psu, buttontxt))
+
+        self.setLayout(_layout)
+
+    def openpsuwindow(self, psu, buttontxt):
+        if self.PsuSetupWin is None:
+            self.PsuSetupWin = setup.PsuInitWindow(psu, buttontxt)
+        self.PsuSetupWin.show()
+
+    def set(self, value):
+        self.dictionaryvalue = value
+        if value:
+            stylesheet = "QWidget {background-color: QLinearGradient(y1:0, y2:1, stop: 0.49 red, stop: 0.51 dimgrey)}"
+            self.button.setStyleSheet(stylesheet)
+            self.button.setText('+                  +\n  PSU Vgs  \n-                 -')
+        else:
+            stylesheet = "QWidget {background-color: QLinearGradient(y1:0, y2:1, stop: 0.49 dimgrey, stop: 0.51 red)}"
+            self.button.setStyleSheet(stylesheet)
+            self.button.setText('-                  -\n  PSU Vgs  \n+                 +')
 
 
 app = QApplication(sys.argv)

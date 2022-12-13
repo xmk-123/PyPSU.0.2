@@ -2,11 +2,12 @@ import sys
 import glob
 import serial
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QRadioButton, QPushButton, QMessageBox, QListWidget, QHBoxLayout, \
-    QMainWindow
+    QMainWindow, QApplication
 import logging
 from serial import SerialException
 import serial.tools.list_ports
 
+import powersupply_EMPTY
 import powersupply_KORAD
 
 logger = logging.getLogger(__name__)
@@ -19,9 +20,9 @@ logger.addHandler(ch)
 
 
 class PsuInitWindow(QMainWindow):
-    def __init__(self, parametersdictionary):
+    def __init__(self, psu):
         super().__init__()
-        self.parametersdictionary = parametersdictionary
+        self.psu = psu
         self.psuname = self.parametersdictionary["name"]
         self.psulabel = self.parametersdictionary["label"]
         self.psu = parametersdictionary["psuobject"]
@@ -137,3 +138,9 @@ def serial_ports():
     result = ([comport.device for comport in serial.tools.list_ports.comports()])
     result.insert(0, "None")
     return result
+
+psu = powersupply_EMPTY
+app = QApplication(sys.argv)
+window = PsuInitWindow(psu)
+window.show()
+exit(app.exec_())

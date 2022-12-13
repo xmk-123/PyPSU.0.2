@@ -11,6 +11,7 @@ import serial
 import time
 import logging
 
+
 # Python dictionary of known KORAD (RND) power supply models
 # (Vmin,Vmax,Imax,Pmax,VresolutionSet,IresolutionSet,VresolutionRead,IresolutionRead,VoffsetMax,IoffsetMax,MaxSettleTime)
 # The format of the resolution numbers MUST be x.xxx
@@ -68,7 +69,7 @@ class KORAD:
     KORAD_TIMEOUT = 2.0
 
     def __init__(self, port='/dev/serial/by-id/usb-Nuvoton_KORAD_USB_Mode_002801900252-if00', debug=True):
-
+        super().__init__()
         # open and configure serial port:
         self.port = port
         self._debug = bool(debug)
