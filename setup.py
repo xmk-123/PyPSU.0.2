@@ -14,7 +14,7 @@ formatter = logging.Formatter('%(levelname)s (%(name)s): %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-psus = ["None", "Konrad"]
+psus = ["Empty psu", "Konrad"]
 
 class PsuInitWindow(QMainWindow):
     def __init__(self, psu, buttontxt):
@@ -22,7 +22,6 @@ class PsuInitWindow(QMainWindow):
         self.psu = psu
         self.psuname = psu.name
         self.port = psu.port
-        print(self.port)
 
         self.window = QWidget()
         self.setWindowTitle("%s setup " % buttontxt)
@@ -61,9 +60,11 @@ class PsuInitWindow(QMainWindow):
 # ***************
         layout.addLayout(_tophorizlayout)
 
+        items = [self.PSUsListWidget.item(x).text() for x in range(self.PortsListWidget.count())]
+        self.CurrentRow = items.index(str(self.psu.name))
+        self.PSUsListWidget.setCurrentRow(self.CurrentRow)
         items = [self.PortsListWidget.item(x).text() for x in range(self.PortsListWidget.count())]
-        print(items)
-        self.CurrentRow = items.index(self.port)
+        self.CurrentRow = items.index(str(self.port))
         self.PortsListWidget.setCurrentRow(self.CurrentRow)
 
         self.updateportsbutton = QPushButton("Update\nPorts")
@@ -81,6 +82,7 @@ class PsuInitWindow(QMainWindow):
         RadioPolarity.toggled.connect(self.SetPolarity)
         RadioPolarity2 = QRadioButton("Source positive")
         layout.addWidget(RadioPolarity2)
+        RadioPolarity2.setChecked(not self.psu.polarity)
 
         layout.addStretch()
         # Initialise button
