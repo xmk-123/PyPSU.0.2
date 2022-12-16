@@ -51,7 +51,7 @@ class KORAD:
     """
     Class for KORAD (RND) power supply
     """
-
+    name = "Korad"
     KORAD_SPECS = {
         "KA3003P": (0.0, 31.0, 3.0, 90, 0.01, 0.001, 0.01, 0.001, 0.0, 0.0, 2.0),  # not confirmed
         "KA3005P": (0.0, 31.0, 5.1, 150, 0.01, 0.001, 0.01, 0.001, 0.0, 0.0, 2.0),
@@ -68,10 +68,11 @@ class KORAD:
 
     KORAD_TIMEOUT = 2.0
 
-    def __init__(self, port='/dev/serial/by-id/usb-Nuvoton_KORAD_USB_Mode_002801900252-if00', debug=True):
+    #def __init__(self, port='/dev/serial/by-id/usb-Nuvoton_KORAD_USB_Mode_002801900252-if00', debug=True):='/dev/ttyACM0'
+    def __init__(self, port, debug=True):
         super().__init__()
         # open and configure serial port:
-        self.port = port
+        #self.port = port
         self._debug = bool(debug)
         self.port = port
         baud = 19200

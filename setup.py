@@ -1,10 +1,15 @@
 import serial
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QMainWindow, QListWidget, QRadioButton, \
     QMessageBox, QLabel
 import logging
 import serial.tools.list_ports
 
 from serial import SerialException
+
+import curvetracePSU
+import powersupply_KORAD
+from powersupply_EMPTY import EmptyPSU
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -14,23 +19,31 @@ formatter = logging.Formatter('%(levelname)s (%(name)s): %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-psus = ["Empty psu", "Konrad"]
+#physicalpsus = {"Empty psu": EmptyPSU, "Korad": powersupply_KORAD.KORAD}
+physicalpsus = {"Korad": powersupply_KORAD.KORAD}
+readyPSUs = {}
+virtualpsus = {}
 
 class PsuInitWindow(QMainWindow):
+
+    polaritychanged = pyqtSignal(bool)
+    setupPSUchange = pyqtSignal(object)
+
     def __init__(self, psu, buttontxt):
         super().__init__()
         self.psu = psu
         self.psuname = psu.name
         self.port = psu.port
+        self.readyPSUs = {}
 
         self.window = QWidget()
         self.setWindowTitle("%s setup " % buttontxt)
-        layout = QVBoxLayout()
-        self.layout1 = QHBoxLayout()
+        _layout = QVBoxLayout()
         self.setCentralWidget(self.window)
-        self.window.setLayout(layout)
-# ***************
-        _tophorizlayout = QHBoxLayout()
+        self.window.setLayout(_layout)
+# *************** PSUs list - Ports list
+
+        _1sthorizlayout = QHBoxLayout()
 
         _psusLayout = QVBoxLayout()
         self.PsusLabel = QLabel("PSUs list")
@@ -38,12 +51,12 @@ class PsuInitWindow(QMainWindow):
         _psusLayout.addWidget(self.PsusLabel)
 
         self.PSUsListWidget = QListWidget()
-        # self.PortsListWidget.setSelectionMode(2)   to select multiple entries
-        self.PSUsListWidget.addItems(psus)
+        self.PSUsListWidget.addItems(physicalpsus.keys())
         self.PSUsListWidget.setMinimumSize(250, 35)
         self.PSUsListWidget.adjustSize()
+        self.PSUsListWidget.currentItemChanged.connect(lambda p: self.initpsubutton.setText("Init\n %s PSU" % p.text()))
         _psusLayout.addWidget(self.PSUsListWidget)
-        _tophorizlayout.addLayout(_psusLayout)
+        _1sthorizlayout.addLayout(_psusLayout)
 
         _portsLayout = QVBoxLayout()
         self.PortsLabel = QLabel("Ports list")
@@ -51,85 +64,137 @@ class PsuInitWindow(QMainWindow):
         _portsLayout.addWidget(self.PortsLabel)
 
         self.PortsListWidget = QListWidget()
-        # self.PortsListWidget.setSelectionMode(2)   to select multiple entries
-        self.PortsListWidget.addItems(serial_ports())
+        self.PortsListWidget.addItems(self.serial_ports())
         self.PortsListWidget.setMinimumSize(250, 35)
         self.PortsListWidget.adjustSize()
         _portsLayout.addWidget(self.PortsListWidget)
-        _tophorizlayout.addLayout(_portsLayout)
-# ***************
-        layout.addLayout(_tophorizlayout)
+        _1sthorizlayout.addLayout(_portsLayout)
 
-        items = [self.PSUsListWidget.item(x).text() for x in range(self.PortsListWidget.count())]
-        self.CurrentRow = items.index(str(self.psu.name))
-        self.PSUsListWidget.setCurrentRow(self.CurrentRow)
-        items = [self.PortsListWidget.item(x).text() for x in range(self.PortsListWidget.count())]
-        self.CurrentRow = items.index(str(self.port))
-        self.PortsListWidget.setCurrentRow(self.CurrentRow)
+        _layout.addLayout(_1sthorizlayout)
+# *************** init psu - Update ports  buttons
+        _2ndhorizlayout = QHBoxLayout()
+
+        self.initpsubutton = QPushButton("Init PSU")
+        self.initpsubutton.clicked.connect(self.ConnectPSU)
+        _2ndhorizlayout.addWidget(self.initpsubutton)
 
         self.updateportsbutton = QPushButton("Update\nPorts")
         self.updateportsbutton.clicked.connect(self.refreshports)
-        self.layout1.addWidget(self.updateportsbutton)
+        _2ndhorizlayout.addWidget(self.updateportsbutton)
+        _layout.addLayout(_2ndhorizlayout)
+# *************** Ready PSUs
 
-        layout.addLayout(self.layout1)
-        layout.addStretch()
+        self.ReadyPsusLabel = QLabel("Ready PSUs")
+        self.ReadyPsusLabel.setMinimumSize(150, 50)
+        _layout.addWidget(self.ReadyPsusLabel)
 
-        # Polarity
+        self.ReadyPSUsWidget = QListWidget()
+        self.ReadyPSUsWidget.setSelectionMode(QListWidget.MultiSelection)  # to select multiple entries
+        self.ReadyPSUsWidget.setMinimumSize(250, 35)
+        self.ReadyPSUsWidget.adjustSize()
+        _layout.addWidget(self.ReadyPSUsWidget)
+
+        # items = [self.PSUsListWidget.item(x).text() for x in range(self.PSUsListWidget.count())]
+        # self.CurrentRow = items.index(str(self.psu.name))
+        # self.PSUsListWidget.setCurrentRow(self.CurrentRow)
+        # items = [self.PortsListWidget.item(x).text() for x in range(self.PortsListWidget.count())]
+        # self.CurrentRow = items.index(str(self.port))
+        # self.PortsListWidget.setCurrentRow(self.CurrentRow)
+
+        # items = [self.ReadyPSUsWidget.item(x).text() for x in range(self.PortsListWidget.count())]
+        # self.CurrentRow = items.index(str(self.psu.name))
+        # self.PortsListWidget.setCurrentRow(self.CurrentRow)
+
+        _layout.addStretch()
+# *************** remove ready PSU button
+
+        self.removepsubutton = QPushButton("Remove selected ready PSUs")
+        self.removepsubutton.clicked.connect(self.DisconnectPSU)
+        _layout.addWidget(self.removepsubutton)
+
+# *************** Polarity
+
         RadioPolarity = QRadioButton("Source negative")
-        layout.addWidget(RadioPolarity)
+        _layout.addWidget(RadioPolarity)
         RadioPolarity.setChecked(self.psu.polarity)
-        #RadioPolarity.setChecked(self.parametersdictionary["Polarity"].isChecked())
-        RadioPolarity.toggled.connect(self.SetPolarity)
+        RadioPolarity.toggled.connect(lambda s: self.polaritychanged.emit(s))
         RadioPolarity2 = QRadioButton("Source positive")
-        layout.addWidget(RadioPolarity2)
+        _layout.addWidget(RadioPolarity2)
         RadioPolarity2.setChecked(not self.psu.polarity)
 
-        layout.addStretch()
-        # Initialise button
-        self.InitButton = QPushButton('Initialise %s' % buttontxt)
+        _layout.addStretch()
+# *************** Initialize button
+
+        self.InitButton = QPushButton('Create %s' % buttontxt)
         self.InitButton.setMinimumSize(150, 65)
         self.InitButton.pressed.connect(self.InitPSU)
-        layout.addWidget(self.InitButton)
+        _layout.addWidget(self.InitButton)
 
-    def InitPSU(self):
-
-        selected = self.PortsListWidget.selectedItems()
-        ports = [s for s in selected]
-        if len(ports) > 0:  # to select multiple entries
-            if ports[0].text() == "None" and self.port is not None:
-                self.serial = serial.Serial(self.port)
-                self.serial.close()
-                self.parametersdictionary["psuobject"] = None
-                self.port = None
-            else:
-                try:
-                    self.psu = powersupply_KORAD.KORAD(ports[0].text(), True)
-                    self.parametersdictionary["psuobject"] = self.psu
-                    self.parametersdictionary["portwidgetitem"] = ports[0]
-
-                    self.updatemainwindowwidgetssettings()
-                    logger.info("PSU selected : %s" % self.psu.MODEL)
-                    self.close()
-
-                except SerialException as e:
-                    logger.warning("error\n %s" % e)
-                    msg = QMessageBox()
-                    msg.setIcon(QMessageBox.Critical)
-                    msg.setText(str(e))
-                    msg.setStandardButtons(QMessageBox.Close)
-                    msg.exec()
-                    # QMessageBox.about(self, "Error", str(e))
-            self.close()
-
-    def SetPolarity(self, polarity):
-        if polarity:
-            self.parametersdictionary["PSU button"].set(True)
-        else:
-            self.parametersdictionary["PSU button"].set(False)
+    def serial_ports(self):
+        result = ([comport.device for comport in serial.tools.list_ports.comports()])
+        #result.insert(0, "None")
+        return result
 
     def refreshports(self):
         self.PortsListWidget.clear()
-        self.PortsListWidget.addItems(serial_ports())
+        self.PortsListWidget.addItems(self.serial_ports())
+
+    def ConnectPSU(self):
+
+        if len(self.PSUsListWidget.selectedItems()) > 0 and len(self.PSUsListWidget.selectedItems()) > 0:
+            _PSUclass = physicalpsus[self.PSUsListWidget.selectedItems()[0].text()]
+            _selectedPort = self.PortsListWidget.selectedItems()[0].text()
+            try:
+                curvtracePSU = curvetracePSU.createPSUclass(_PSUclass)(_selectedPort)
+                readyPSUname = str(curvtracePSU.name + " / " + curvtracePSU.MODEL + "   at port:   " + curvtracePSU.port)
+                self.readyPSUs.update({readyPSUname: curvtracePSU})
+                self.ReadyPSUsWidget.addItem(readyPSUname)
+                #virtualpsus[str(curvtracePSU.name + " / " + curvtracePSU.MODEL + "   at port:   " + curvtracePSU.port)] = curvtracePSU
+                #curvtracePSU.name = curvtracePSU.name + " / " + curvtracePSU.MODEL + "   at port:   " + curvtracePSU.port
+
+                #self.updatemainwindowwidgetssettings()
+               # logger.info("PSU _selected : %s" % self.psu.MODEL)
+                #self.close()
+
+            except SerialException as e:
+                logger.warning("error\n %s" % e)
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Critical)
+                msg.setText(str(e))
+                msg.setStandardButtons(QMessageBox.Close)
+                msg.exec()
+        else:
+            return
+
+        if _PSUclass is EmptyPSU:
+            return
+
+
+                # QMessageBox.about(self, "Error", str(e))
+            # if len(_selectedPort) > 0:
+            #     if _selectedPort[0].text() == "None" and self.port is not None:
+            #         self.serial = serial.Serial(self.port)
+            #         self.serial.close()
+            #         self.port = None
+    def DisconnectPSU(self):
+        if self.readyPSUscount >= 1:
+            del self.readyPSUs[self.ReadyPSUsWidget.currentRow()]
+            self.ReadyPSUsWidget.takeItem(self.ReadyPSUsWidget.currentRow())
+
+    def InitPSU(self):
+        if len(self.ReadyPSUsWidget.selectedItems()) == 1:
+            _ReadyPSUsSelected = self.ReadyPSUsWidget.selectedItems()
+            self.setupPSUchange.emit(_ReadyPSUsSelected)
+
+        return
+        ports = [s for s in _selected]
+        if len(_PhysicalPSU) > 0:
+            if len(ports) > 0:  # to select multiple entries
+                if ports[0].text() == "None" and self.port is not None:
+                    self.serial = serial.Serial(self.port)
+                    self.serial.close()
+                    self.parametersdictionary["psuobject"] = None
+                    self.port = None
 
     def updatemainwindowwidgetssettings(self):
         self.psulabel.setText(self.psu.MODEL)
@@ -148,9 +213,6 @@ class PsuInitWindow(QMainWindow):
         self.parametersdictionary["Max I"]["widget"].widgetSpinbox.setMaximum(self.psu.IMAX)
 
 
-def serial_ports():
-    result = ([comport.device for comport in serial.tools.list_ports.comports()])
-    result.insert(0, "None")
-    return result
+
 
 
