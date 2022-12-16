@@ -131,7 +131,7 @@ class PsuInitWindow(QMainWindow):
         self.parametersdictionary["Step V"]["widget"].widgetSpinbox.setSingleStep(self.psu.VRESSET)
         self.parametersdictionary["Max I"]["widget"].widgetSpinbox.setDecimals(self.psu.IRESSETCNT)
         self.parametersdictionary["Max I"]["widget"].widgetSpinbox.setSingleStep(self.psu.IRESSET)
-        self.parametersdictionary["Max I"]["widget"].widgetSpinbox.setMaximum(self.psu.IMAX)
+        self.parametersdictionary["Max I"]["widget"].widgetSpinbox.setMaximum(self.psu.IMAXwidget)
 
 
 def serial_ports():

@@ -25,7 +25,7 @@ logger.addHandler(ch)
 #                               after changing the setpoint (s)
 #    .VMAX                  max. supported voltage (V)
 #    .VMIN                  min. supported voltage (V)
-#    .IMAX                  max. supported current (V)
+#    .IMAXwidget                  max. supported current (V)
 #    .PMAX                  max. supported power (W)
 #    .VRESSET               resolution of voltage setting (V)
 #    .IRESSET               resolution of current setting (A)
@@ -66,19 +66,19 @@ class PSUCOMPOSITE:
         self.VMAX = sum(max(self.VMAXLIST))
         self._PCT_DISTRIBUTION = [i.VMAX * 100 / sum(self.VMAXLIST) for i in self.VMAXLIST]
         self.VMIN = sum(min([i.VMIN for i in self._ppsu]))
-        self.IMAX = min([i.IMAX for i in self._ppsu])
+        self.IMAX = min([i.IMAXwidget for i in self._ppsu])
         self.IMIN = max([i.IMIN for i in self._ppsu])
         self.IRESSETCNTMAX = min([i.IRESSETCNT for i in self._ppsu])  # min current resolution of physical psu s
         self.PMAX = sum([i.PMAX for i in self._ppsu])
         self.VOFFSETMAX = sum([i.VOFFSETMAX for i in self._ppsu])
-        self.IOFFSETMAX = max([i.IMAX for i in self._ppsu])
+        self.IOFFSETMAX = max([i.IMAXwidget for i in self._ppsu])
         self.MAXSETTLETIME = max([i.MAXSETTLETIME for i in self._ppsu])
         self.READIDLETIME = self.MAXSETTLETIME / 50
 
         logger.info('VRESSETCNTMAX = ' + self.VRESSETCNTMAX + '\n' +
                     'self.VMIN = ' + self.VMIN + '\n' +
                     'VMAX = ' + self.VMAX + '\n' +
-                    'IMAX = ' + self.IMAX + '\n' +
+                    'IMAXwidget = ' + self.IMAX + '\n' +
                     'PMAX = ' + self.PMAX + '\n')
 
     def setvoltage(self, voltage):

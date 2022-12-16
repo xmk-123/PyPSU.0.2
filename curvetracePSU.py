@@ -10,25 +10,31 @@ def createPSUclass(cls):
             super().__init__(port)
 
             self.window = QWidget()
-            _layout = QVBoxLayout()
-            self.window.setLayout(_layout)
+            self._layout = QVBoxLayout()
+            self.window.setLayout(self._layout)
 
             self.polarity = True
             self.port = port
-            self.VSTART = ParameterWidget("Start V", self.VMIN, self.VMAX, self.VRESSETCNT)
-            self.VEND = ParameterWidget("End V", self.VMIN, self.VMAX, self.VRESSETCNT)
-            self.IMAX = ParameterWidget("Max I", 0, self.IMAX, self.IRESSETCNT)
-            self.STEP = ParameterWidget("Step V", (1/self.VRESSETCNT), self.VMAX, self.VRESSETCNT)
+            self.VSTARTwidget = ParameterWidget("Start V", self.VMIN, self.VMAX, self.VRESSETCNT)
+            self.VENDwidget = ParameterWidget("End V", self.VMIN, self.VMAX, self.VRESSETCNT)
+            self.STEPwidget = ParameterWidget("Step V", self.VRESSET, self.VMAX, self.VRESSETCNT)
+            self.IMAXwidget = ParameterWidget("Max I", 0, self.IMAX, self.IRESSETCNT)
 
-            _layout.addWidget(self.VSTART)
-            _layout.addWidget(self.VEND)
-            _layout.addWidget(self.IMAX)
-            _layout.addWidget(self.STEP)
 
-        # def disablespinbxs(self, ):
+            self._layout.addWidget(self.VSTARTwidget)
+            self._layout.addWidget(self.VENDwidget)
+            self._layout.addWidget(self.STEPwidget)
+            self._layout.addWidget(self.IMAXwidget)
+
+            
             if cls == EmptyPSU:
-                for widget in _layout.parentWidget().findChildren(QDoubleSpinBox):
-                    widget.setDisabled(True)
+                self.enablespinbxs(False)
+            else:
+                self.enablespinbxs(True)
+
+        def enablespinbxs(self, enable):
+            for widget in self._layout.parentWidget().findChildren(QDoubleSpinBox):
+                widget.setEnabled(enable)
 
     class ParameterWidget(QWidget):
         def __init__(self, name, minval, maxval, resolution):

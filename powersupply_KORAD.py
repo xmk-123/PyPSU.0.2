@@ -25,7 +25,7 @@ import logging
 #    .reading()
 #    .VMIN
 #    .VMAX
-#    .IMAX
+#    .IMAXwidget
 #    .VRESSET
 #    .IRESSET
 #    .VRESREAD
@@ -126,7 +126,7 @@ class KORAD:
             logger.info('VRESSETCNTMAX = ' + str(self.VRESSETCNT) + '\n' +
                         'self.VMIN = ' + str(self.VMIN) + '\n' +
                         'VMAX = ' + str(self.VMAX) + '\n' +
-                        'IMAX = ' + str(self.IMAX) + '\n' +
+                        'IMAXwidget = ' + str(self.IMAX) + '\n' +
                         'PMAX = ' + str(self.PMAX) + '\n')
 
         except serial.SerialTimeoutException:
