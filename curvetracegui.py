@@ -1,33 +1,28 @@
 import sys
-from gc import get_referrers
-
+import time
 from PyQt5.QtCore import pyqtSignal
-from sys import getrefcount
 import curvetracePSU
-
 import setup
-from PyQt5 import QtCore, Qt
+from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
                              QPushButton, QDoubleSpinBox, QVBoxLayout, QLabel, QSpinBox)
-
 from powersupply_EMPTY import EmptyPSU
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-
         self.PSUdict = {"Vgs PSU": curvetracePSU.createPSUclass(EmptyPSU)(),
                         "Vds PSU": curvetracePSU.createPSUclass(EmptyPSU)()}
-
         self.dutTestParameters = {"Idle sec": 0, "Preheat sec": 0, "Max Power": 0}
 
+        self.PsuSetupWin = None
         self.builtui()
 
     def builtui(self):
 
-        self.setWindowTitle("Curvetrace 0.2")
+        self.setWindowTitle("Curvetrace 0.3")
         self.window = QWidget()
         self.mainlayout = QVBoxLayout()
 
@@ -63,7 +58,7 @@ class MainWindow(QMainWindow):
 
         self.psuVgsbutton = PsuButtonBox(self.PSUdict, "Vgs PSU")
         self.layouttopcentermiddleH.addWidget(self.psuVgsbutton)
-        self.psuVgsbutton.updateMainWindow.connect(lambda x: self.builtui())
+        self.psuVgsbutton.PsuButtonPressed.connect(lambda x: self.openpsuwindow(self.PSUdict))
 
         self.layouttopcentermiddleH.addStretch()
 
@@ -79,6 +74,7 @@ class MainWindow(QMainWindow):
 
         self.psuVdsbutton = PsuButtonBox(self.PSUdict, "Vds PSU")
         self.layouttopcentermiddleH.addWidget(self.psuVdsbutton)
+        self.psuVdsbutton.PsuButtonPressed.connect(lambda x: self.openpsuwindow(self.PSUdict))
 
     # top center middle end
     # top center bottom start
@@ -156,57 +152,43 @@ class MainWindow(QMainWindow):
         self.mainlayout.addLayout(self.layouttopbottomV)
         self.mainlayout.addStretch()
 
-        self.i = get_referrers(self.PSUdict)
-        self.last = get_referrers(self.PSUdict)
+    def openpsuwindow(self, PSUdict):
+        if self.PsuSetupWin is None:
+            self.PsuSetupWin = setup.PsuInitWindow(PSUdict)
+            # self.PsuSetupWin.setWindowModality(QtCore.Qt.WindowModal)
+            self.PsuSetupWin.Vgspolaritychanged.connect(lambda s: self.psuVgsbutton.set(s))
+            self.PsuSetupWin.Vdspolaritychanged.connect(lambda s: self.psuVdsbutton.set(s))
+            self.PsuSetupWin.updateMainWindow.connect(self.builtui)
+        self.PsuSetupWin.show()
 
     def test(self):
-        self.mainlayout.update()
-        #setup.PsuInitWindow(self.PSUdict, "Vgs PSU")
-        #self.psuVgsbutton.PsuSetupWin.show()
-        #self.PSUdict["Vgs PSU"].enablespinbxs(True)
-        # print(get_referrers(self.psuVgsbutton.PsuSetupWin))
-        # print(self.psuVgsbutton.PsuSetupWin)
-        # b = get_referrers(self.PSUdict)
-        # temp3 = []
-        # print("added")
-        # for element in b:
-        #     if element not in self.last:
-        #         temp3.append(element)
-        #         print(temp3)
-        # print("removed")
-        # for element in self.last:
-        #     if element not in b:
-        #         temp3.append(element)
-        #         print(temp3)
-        # self.last = b
+        self.PSUdict["Vgs PSU"].turnon()
+        self.PSUdict["Vgs PSU"].setvoltage(3)
+        time.sleep(5)
+        self.PSUdict["Vgs PSU"].setvoltage(0)
+        self.PSUdict["Vgs PSU"].turnoff()
 
+        # self.psuVgsbutton.PsuSetupWin.show()
+        # print(get_referrers(self.psuVgsbutton.PsuSetupWin))
+        # b = get_referrers(self.PSUdict)
         # for i in get_referrers(self.PSUdict):
         #     print(i)
-        print(getrefcount(self.PSUdict)) # print(self.PSUdict["Vds PSU"].name)
+        # print(getrefcount(self.PSUdict)) # print(self.PSUdict["Vds PSU"].name)
 
 
 class PsuButtonBox(QWidget):
-    updateMainWindow = pyqtSignal(bool)
+    PsuButtonPressed = pyqtSignal(str)
+
     def __init__(self, PSUdict, psuKey):
         super().__init__()
-        self.PsuSetupWin = None
         self.psuKey = psuKey
         _layout = QVBoxLayout()
         self.button = QPushButton()
         self.set(PSUdict[psuKey].polarity)
         self.button.setMinimumSize(150, 65)
         _layout.addWidget(self.button)
-        self.button.clicked.connect(lambda a: self.openpsuwindow(PSUdict, psuKey))
-
+        self.button.clicked.connect(lambda a: self.PsuButtonPressed.emit(psuKey))
         self.setLayout(_layout)
-
-    def openpsuwindow(self, PSUdict, psuKey):
-        if self.PsuSetupWin is None:
-            self.PsuSetupWin = setup.PsuInitWindow(PSUdict, psuKey)
-            self.PsuSetupWin.setWindowModality(QtCore.Qt.WindowModal)
-            self.PsuSetupWin.polaritychanged.connect(lambda s: self.set(s))
-            self.PsuSetupWin.updateMainWindow.connect(lambda x: self.updateMainWindow.emit(True))
-        self.PsuSetupWin.show()
 
     def set(self, value):
         if value:

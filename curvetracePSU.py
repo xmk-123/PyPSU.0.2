@@ -1,6 +1,4 @@
 from PyQt5.QtWidgets import QDoubleSpinBox, QHBoxLayout, QLabel, QWidget, QVBoxLayout
-
-import powersupply_EMPTY
 from powersupply_EMPTY import EmptyPSU
 
 
@@ -20,12 +18,10 @@ def createPSUclass(cls):
             self.STEPwidget = ParameterWidget("Step V", self.VRESSET, self.VMAX, self.VRESSETCNT)
             self.IMAXwidget = ParameterWidget("Max I", 0, self.IMAX, self.IRESSETCNT)
 
-
             self._layout.addWidget(self.VSTARTwidget)
             self._layout.addWidget(self.VENDwidget)
             self._layout.addWidget(self.STEPwidget)
             self._layout.addWidget(self.IMAXwidget)
-
             
             if cls == EmptyPSU:
                 self.enablespinbxs(False)

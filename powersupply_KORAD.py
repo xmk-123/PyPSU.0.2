@@ -69,7 +69,7 @@ class KORAD:
     KORAD_TIMEOUT = 2.0
 
     #def __init__(self, port='/dev/serial/by-id/usb-Nuvoton_KORAD_USB_Mode_002801900252-if00', debug=True):='/dev/ttyACM0'
-    def __init__(self, port, debug=True):
+    def __init__(self, port, debug=False):
         super().__init__()
         # open and configure serial port:
         #self.port = port

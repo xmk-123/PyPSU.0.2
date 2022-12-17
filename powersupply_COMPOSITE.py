@@ -55,10 +55,12 @@ logger.addHandler(ch)
 
 class PSUCOMPOSITE:
 
-    def __init__(self, *args):
-        self._ppsu = []  # list of physical psu s
-        for count, p in enumerate(args):
-            self._ppsu[count] = p
+    # def __init__(self, *args):
+    #     self._ppsu = []  # list of physical psu s
+    #     for count, p in enumerate(args):
+    #         self._ppsu[count] = p
+    def __init__(self, psuslist):
+        self._ppsu = psuslist  # list of physical psu s
 
         self.VRESSETCNTMAX = max([i.VRESSETCNT for i in self._ppsu])    # max voltage resolution of physical psu s
         self.INDEX_OF_PPSU_VRESSETCNTMAX = ([i.VRESSETCNT for i in self._ppsu].index(self.VRESSETCNTMAX))   # physical psu with max resolution
