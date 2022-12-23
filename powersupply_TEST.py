@@ -34,7 +34,7 @@ class TestPSU:
         # print("Setcurrent : ", current)
 
     def read(self, n=0):
-        self.current = min(self.current, self.voltage)
-        if self.current > 3:
-            return {"voltage": self.voltage, "current": 3, "mode": "CC"}
+        self.current = self.voltage * 0.5
+        if self.current > self.IMAXwidget.widgetSpinbox.value():
+            return {"voltage": self.voltage, "current": self.IMAXwidget.widgetSpinbox.value(), "mode": "CC"}
         return {"voltage": self.voltage, "current": self.current, "mode": "CV"}

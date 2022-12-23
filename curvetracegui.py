@@ -1,7 +1,8 @@
 import sys
 import time
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QThread
 import curvetracePSU
+from plot import plotwin
 from setup import PsuInitWindow
 from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon
@@ -9,7 +10,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
                              QPushButton, QDoubleSpinBox, QVBoxLayout, QLabel, QSpinBox)
 from powersupply_EMPTY import EmptyPSU
 from powersupply_TEST import TestPSU
-from traceroutine import traceroutine
+from traceroutine import worker
 
 
 class MainWindow(QMainWindow):
@@ -18,7 +19,7 @@ class MainWindow(QMainWindow):
         # self.PSUdict = {"Vgs PSU": curvetracePSU.createPSUclass(EmptyPSU)(),
         #                 "Vds PSU": curvetracePSU.createPSUclass(EmptyPSU)()}
         self.PSUdict = {"Vgs PSU": curvetracePSU.createPSUclass(TestPSU)("TestPort1"),
-                         "Vds PSU": curvetracePSU.createPSUclass(TestPSU)("TestPort2")}
+                        "Vds PSU": curvetracePSU.createPSUclass(TestPSU)("TestPort2")}
         self.dutTestParameters = {"Idle sec": 0, "Preheat sec": 0, "Max Power": 0}
 
         self.PsuSetupWin = None
@@ -49,8 +50,7 @@ class MainWindow(QMainWindow):
 
         self.layouttoprightV = QVBoxLayout()
 
-
-# top center pane start
+        # top center pane start
         self.PsuVgsLabel = QLabel(self.PSUdict["Vgs PSU"].name)
         self.PsuVgsLabel.setMinimumSize(110, 50)
         self.layouttopcentertopH.addWidget(self.PsuVgsLabel)
@@ -61,8 +61,8 @@ class MainWindow(QMainWindow):
         self.PsuVdsLabel.setMinimumSize(110, 50)
         self.layouttopcentertopH.addWidget(self.PsuVdsLabel)
 
-    # top center top end
-    # top center middle start
+        # top center top end
+        # top center middle start
 
         self.psuVgsbutton = PsuButtonBox(self.PSUdict, "Vgs PSU")
         self.layouttopcentermiddleH.addWidget(self.psuVgsbutton)
@@ -84,8 +84,8 @@ class MainWindow(QMainWindow):
         self.layouttopcentermiddleH.addWidget(self.psuVdsbutton)
         self.psuVdsbutton.PsuButtonPressed.connect(lambda x: self.openpsuwindow(self.PSUdict))
 
-    # top center middle end
-    # top center bottom start
+        # top center middle end
+        # top center bottom start
         self.IdleLabel = QLabel("Idle sec")
         self.IdleLabel.setMinimumSize(110, 50)
         self.layouttopcenterbottomH.addWidget(self.IdleLabel)
@@ -127,17 +127,17 @@ class MainWindow(QMainWindow):
         self.MaxpwrSpinbox.setMinimum(0)
         self.MaxpwrSpinbox.setMaximum(300)
         self.layouttopcenterbottomH.addWidget(self.MaxpwrSpinbox)
-    # top center bottom end
+        # top center bottom end
 
-# top center pane end
+        # top center pane end
 
-# top left pane start
+        # top left pane start
         self.layouttopleftV.addWidget(self.PSUdict["Vgs PSU"].PSUwindow)
 
-# right pane start
+        # right pane start
         self.layouttoprightV.addWidget(self.PSUdict["Vds PSU"].PSUwindow)
 
-# right pane end
+        # right pane end
 
         self.layouttopH.addLayout(self.layouttopleftV)
         self.layouttopH.addStretch()
@@ -160,9 +160,12 @@ class MainWindow(QMainWindow):
         self.mainlayout.addLayout(self.layouttopbottomV)
         self.mainlayout.addStretch()
 
+        self.graphWidget = plotwin()
+        self.mainlayout.addWidget(self.graphWidget)
+
     def openpsuwindow(self, PSUdict):
         if self.PsuSetupWin is None:
-            #self.PsuSetupWin = setup.PsuInitWindow(PSUdict)
+            # self.PsuSetupWin = setup.PsuInitWindow(PSUdict)
             self.PsuSetupWin = PsuInitWindow(PSUdict)
 
             # self.PsuSetupWin.setParent(self)
@@ -178,8 +181,18 @@ class MainWindow(QMainWindow):
         self.buildui()
 
     def test(self):
-        traceroutine(self.PSUdict, self.MaxpwrSpinbox)
+        self.graphWidget.graphWidget.clear()
+        self.thread = QThread()
+        self.worker = worker(self.PSUdict, self.MaxpwrSpinbox, self.graphWidget)
+        self.worker.moveToThread(self.thread)
 
+        self.thread.started.connect(self.worker.traceroutine)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.updateplot.connect(lambda x: self.graphWidget.updateplot(x))
+
+        self.thread.start()
 
     def freeze(self, freeze):
         self.psuVgsbutton.button.setDisabled(freeze)
