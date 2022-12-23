@@ -4,38 +4,10 @@ Python class to control KORAD (RND) power supplies
 
 # Useful information about KORAD command set: https://sigrok.org/wiki/Korad_KAxxxxP_series
 
-# NOTE: KORAD KWR103 commands are "VOUT?" (not "VOUT1?") or "ISET" (not "ISET1"), etc.
-# for the other "1" commands given in the manual. The manual seems to be wrong!
-
 import serial
 import time
 import logging
 
-
-# Python dictionary of known KORAD (RND) power supply models
-# (Vmin,Vmax,Imax,Pmax,VresolutionSet,IresolutionSet,VresolutionRead,IresolutionRead,VoffsetMax,IoffsetMax,MaxSettleTime)
-# The format of the resolution numbers MUST be x.xxx
-# i.e. one place for integer and then dot and then the fractional part
-# min serial version 3.3 (needed for exclusive access of serial port)
-
-# KORAD:
-#    .output(state)
-#    .voltage(voltage)
-#    .current(current)
-#    .reading()
-#    .VMIN
-#    .VMAX
-#    .IMAXwidget
-#    .VRESSET
-#    .IRESSET
-#    .VRESREAD
-#    .IRESREAD
-#    .VOFFSETMAX
-#    .VOFFSETMAX
-#    .IOFFSETMAX
-#    .MAXSETTLETIME
-#    .READIDLETIME
-#    .MODEL
 
 # set up logger:
 logger = logging.getLogger(__name__)
@@ -65,14 +37,11 @@ class KORAD:
         "KWR103": (0.0, 60.5, 15.0, 300, 0.001, 0.001, 0.001, 0.001, 0.0, 0.0, 2.0)
         # confirmed (with the RND incarnation of the KWR103
     }
-
     KORAD_TIMEOUT = 2.0
 
-    #def __init__(self, port='/dev/serial/by-id/usb-Nuvoton_KORAD_USB_Mode_002801900252-if00', debug=True):='/dev/ttyACM0'
     def __init__(self, port, debug=False):
         super().__init__()
-        # open and configure serial port:
-        #self.port = port
+
         self._debug = bool(debug)
         self.port = port
         baud = 19200

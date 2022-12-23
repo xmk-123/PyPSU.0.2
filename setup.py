@@ -13,6 +13,7 @@ import curvetracePSU
 import powersupply_KORAD
 from powersupply_COMPOSITE import PSUCOMPOSITE
 from powersupply_EMPTY import EmptyPSU
+from powersupply_TEST import TestPSU
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -22,7 +23,7 @@ formatter = logging.Formatter('%(levelname)s (%(name)s): %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-physicalpsus = {"Korad": powersupply_KORAD.KORAD, "Test": None}
+physicalpsus = {"Korad": powersupply_KORAD.KORAD, "Test PSU": TestPSU}
 AvailablePSUs = {}
 
 
@@ -34,12 +35,13 @@ class PsuInitWindow(QMainWindow):
 
     def __init__(self, PSUdict):
         super().__init__()
+        print(self.parent())
         self.PSUdict = PSUdict
         self.window = QWidget()
         self.setWindowTitle(" setup ")
-        _layout = QVBoxLayout()
+        _INITlayout = QVBoxLayout()
         self.setCentralWidget(self.window)
-        self.window.setLayout(_layout)
+        self.window.setLayout(_INITlayout)
 # *************** PSUs list - Ports list
 
         _1sthorizlayout = QHBoxLayout()
@@ -69,7 +71,7 @@ class PsuInitWindow(QMainWindow):
         _portsLayout.addWidget(self.PortsListWidget)
         _1sthorizlayout.addLayout(_portsLayout)
 
-        _layout.addLayout(_1sthorizlayout)
+        _INITlayout.addLayout(_1sthorizlayout)
 # *************** init psu - Update ports  buttons
 
         _2ndhorizlayout = QHBoxLayout()
@@ -81,7 +83,7 @@ class PsuInitWindow(QMainWindow):
         self.updateportsbutton = QPushButton("Update\nPorts")
         self.updateportsbutton.clicked.connect(self.refreshports)
         _2ndhorizlayout.addWidget(self.updateportsbutton)
-        _layout.addLayout(_2ndhorizlayout)
+        _INITlayout.addLayout(_2ndhorizlayout)
 
 # *************** PSUs used by Vgs PSU
         _3rddhorizlayout = QHBoxLayout()
@@ -96,7 +98,7 @@ class PsuInitWindow(QMainWindow):
         self.VgsPSUsListWidget.setSelectionMode(QListWidget.MultiSelection)  # to select multiple entries
         self.VgsPSUsListWidget.setMinimumSize(250, 35)
         self.VgsPSUsListWidget.adjustSize()
-        self.VgsPSUsListWidget.addItems(AvailablePSUs.keys())
+        #self.VgsPSUsListWidget.addItems(AvailablePSUs.keys())
         _VgsPSUlayout.addWidget(self.VgsPSUsListWidget)
 
         _VgsPSUlayout.addStretch()
@@ -149,7 +151,7 @@ class PsuInitWindow(QMainWindow):
         self.AvailablePSUsWidget.setSelectionMode(QListWidget.MultiSelection)  # to select multiple entries
         self.AvailablePSUsWidget.setMinimumSize(250, 35)
         self.AvailablePSUsWidget.adjustSize()
-        self.AvailablePSUsWidget.addItems(AvailablePSUs.keys())
+        #self.AvailablePSUsWidget.addItems(AvailablePSUs.keys())
         _initPSUlayout.addWidget(self.AvailablePSUsWidget)
 
         # items = [self.PSUsListWidget.item(x).text() for x in range(self.PSUsListWidget.count())]
@@ -209,7 +211,7 @@ class PsuInitWindow(QMainWindow):
         self.VdsPSUsListWidget.setSelectionMode(QListWidget.MultiSelection)  # to select multiple entries
         self.VdsPSUsListWidget.setMinimumSize(250, 35)
         self.VdsPSUsListWidget.adjustSize()
-        self.VdsPSUsListWidget.addItems(AvailablePSUs.keys())
+        #self.VdsPSUsListWidget.addItems(AvailablePSUs.keys())
         _VdsPSUlayout.addWidget(self.VdsPSUsListWidget)
 
         _VdsPSUlayout.addStretch()
@@ -234,7 +236,7 @@ class PsuInitWindow(QMainWindow):
 
         _3rddhorizlayout.addLayout(_VdsPSUlayout)
 
-        _layout.addLayout(_3rddhorizlayout)
+        _INITlayout.addLayout(_3rddhorizlayout)
 
     def addToPSU(self, psulistwidget):
         for i in self.AvailablePSUsWidget.selectedItems():
@@ -243,15 +245,16 @@ class PsuInitWindow(QMainWindow):
 
     def removefromPSU(self, psulistwidget):
         for i in psulistwidget.selectedItems():
-            self.AvailablePSUsWidget.addItem(i.text())
             psulistwidget.takeItem(psulistwidget.row(i))
+            self.AvailablePSUsWidget.addItem(i.text())
 
     def closewin(self):
         self.close()
 
     def serial_ports(self):
         result = ([comport.device for comport in serial.tools.list_ports.comports()])
-        # result.insert(0, "None")
+        result.append("TestPort1")
+        result.append("TestPort2")
         return result
 
     def refreshports(self):
@@ -259,16 +262,15 @@ class PsuInitWindow(QMainWindow):
         self.PortsListWidget.addItems(self.serial_ports())
 
     def ConnectPSU(self):
-
-        if len(self.PSUsListWidget.selectedItems()) > 0 or len(self.PortsListWidget.selectedItems()) > 0:
-            _PSUclass = physicalpsus[self.PSUsListWidget.selectedItems()[0].text()]
-            _selectedPort = self.PortsListWidget.selectedItems()[0].text()
+        if len(self.PSUsListWidget.selectedItems()) > 0 and len(self.PortsListWidget.selectedItems()) > 0:
+            _PSUclass = physicalpsus[self.PSUsListWidget.currentItem().text()]
+            _selectedPort = self.PortsListWidget.currentItem().text()
             try:
                 curvtracePSU = curvetracePSU.createPSUclass(_PSUclass)(_selectedPort)
                 readyPSUname = str(curvtracePSU.name + " / " + curvtracePSU.MODEL + "   at port:   " + curvtracePSU.port)
                 AvailablePSUs.update({readyPSUname: curvtracePSU})
                 self.AvailablePSUsWidget.addItem(readyPSUname)
-                print(AvailablePSUs)
+                self.PortsListWidget.takeItem(self.PortsListWidget.currentRow())
 
             except SerialException as e:
                 logger.warning("error\n %s" % e)
@@ -281,15 +283,16 @@ class PsuInitWindow(QMainWindow):
             return
             # QMessageBox.about(self, "Error", str(e))
 
-    def DisconnectPSU(self):
-        self.PSUdict[self.psuKey] = curvetracePSU.createPSUclass(EmptyPSU)
-        for i in self.AvailablePSUsWidget.selectedItems():
-            del AvailablePSUs[i.text()]
-            self.AvailablePSUsWidget.takeItem(self.AvailablePSUsWidget.row(i))
-        # del self.AvailablePSUs[self.AvailablePSUsWidget.selectedItems()]
-        # self.AvailablePSUsWidget.takeItem(self.AvailablePSUsWidget.currentRow())
+    # def DisconnectPSU(self):
+    #     self.PSUdict[self.psuKey] = curvetracePSU.createPSUclass(EmptyPSU)
+    #     for i in self.AvailablePSUsWidget.selectedItems():
+    #         del AvailablePSUs[i.text()]
+    #         self.AvailablePSUsWidget.takeItem(self.AvailablePSUsWidget.row(i))
+    #     # del self.AvailablePSUs[self.AvailablePSUsWidget.selectedItems()]
+    #     # self.AvailablePSUsWidget.takeItem(self.AvailablePSUsWidget.currentRow())
 
     def InitPSU(self):
+
         _VgsPSUs = [str(self.VgsPSUsListWidget.item(i).text()) for i in range(self.VgsPSUsListWidget.count())]
         _VdsPSUs = [str(self.VdsPSUsListWidget.item(i).text()) for i in range(self.VdsPSUsListWidget.count())]
 
@@ -297,13 +300,10 @@ class PsuInitWindow(QMainWindow):
             match len(p):
                 case 0:
                     self.PSUdict[key] = curvetracePSU.createPSUclass(EmptyPSU)()
-                    self.updatePSUwidgetssettings(key)
                 case 1:
                     self.PSUdict[key] = AvailablePSUs[p[0]]
-                    self.updatePSUwidgetssettings(key)
                 case range(1, 10):
                     self.PSUdict[key] = PSUCOMPOSITE(p)
-                    self.updatePSUwidgetssettings(key)
                 case _:
                     return
         
@@ -319,20 +319,20 @@ class PsuInitWindow(QMainWindow):
         #             self.serial.close()
         #             self.port = None
 
-    def updatePSUwidgetssettings(self, key):
-        return
-        # self.psulabel.setText(self.self.PSUdict[key].MODEL)
-        self.PSUdict[key].VSTARTwidget.widgetSpinbox.setDecimals(self.PSUdict[key].VRESSETCNT)
-        self.PSUdict[key].VSTARTwidget.widgetSpinbox.setSingleStep(self.PSUdict[key].VRESSET)
-        self.PSUdict[key].VSTARTwidget.widgetSpinbox.setMinimum(self.PSUdict[key].VMIN)
-        self.PSUdict[key].VSTARTwidget.widgetSpinbox.setMaximum(self.PSUdict[key].VMAX)
-        self.PSUdict[key].VENDwidget.widgetSpinbox.setDecimals(self.PSUdict[key].VRESSETCNT)
-        self.PSUdict[key].VENDwidget.widgetSpinbox.setSingleStep(self.PSUdict[key].VRESSET)
-        self.PSUdict[key].VENDwidget.widgetSpinbox.setMinimum(self.PSUdict[key].VMIN)
-        self.PSUdict[key].VENDwidget.widgetSpinbox.setMaximum(self.PSUdict[key].VMAX)
-        self.PSUdict[key].STEPwidget.widgetSpinbox.setDecimals(self.PSUdict[key].VRESSETCNT)
-        self.PSUdict[key].STEPwidget.widgetSpinbox.setSingleStep(self.PSUdict[key].VRESSET)
-        self.PSUdict[key].IMAXwidget.widgetSpinbox.setDecimals(self.PSUdict[key].IRESSETCNT)
-        self.PSUdict[key].IMAXwidget.widgetSpinbox.setSingleStep(self.PSUdict[key].IRESSET)
-        self.PSUdict[key].IMAXwidget.widgetSpinbox.setMaximum(self.PSUdict[key].IMAX)
-        self.PSUdict[key].enablespinbxs(True)
+    # def updatePSUwidgetssettings(self, key):
+    #     return
+    #     # self.psulabel.setText(self.self.PSUdict[key].MODEL)
+    #     self.PSUdict[key].VSTARTwidget.widgetSpinbox.setDecimals(self.PSUdict[key].VRESSETCNT)
+    #     self.PSUdict[key].VSTARTwidget.widgetSpinbox.setSingleStep(self.PSUdict[key].VRESSET)
+    #     self.PSUdict[key].VSTARTwidget.widgetSpinbox.setMinimum(self.PSUdict[key].VMIN)
+    #     self.PSUdict[key].VSTARTwidget.widgetSpinbox.setMaximum(self.PSUdict[key].VMAX)
+    #     self.PSUdict[key].VENDwidget.widgetSpinbox.setDecimals(self.PSUdict[key].VRESSETCNT)
+    #     self.PSUdict[key].VENDwidget.widgetSpinbox.setSingleStep(self.PSUdict[key].VRESSET)
+    #     self.PSUdict[key].VENDwidget.widgetSpinbox.setMinimum(self.PSUdict[key].VMIN)
+    #     self.PSUdict[key].VENDwidget.widgetSpinbox.setMaximum(self.PSUdict[key].VMAX)
+    #     self.PSUdict[key].STEPwidget.widgetSpinbox.setDecimals(self.PSUdict[key].VRESSETCNT)
+    #     self.PSUdict[key].STEPwidget.widgetSpinbox.setSingleStep(self.PSUdict[key].VRESSET)
+    #     self.PSUdict[key].IMAXwidget.widgetSpinbox.setDecimals(self.PSUdict[key].IRESSETCNT)
+    #     self.PSUdict[key].IMAXwidget.widgetSpinbox.setSingleStep(self.PSUdict[key].IRESSET)
+    #     self.PSUdict[key].IMAXwidget.widgetSpinbox.setMaximum(self.PSUdict[key].IMAX)
+    #     self.PSUdict[key].enablespinbxs(True)

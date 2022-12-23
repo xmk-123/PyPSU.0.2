@@ -9,6 +9,8 @@ MaxpwrSpinbox.setMaximum(100) check that psu can accomodate max DUI setting powe
 
 moosfet pic remove polarity
 
+DONE curvtracePSU check that VRESSET of parent class is not 0 or neg
+
 variables:
 *****************************************************
 class MainWindow(QMainWindow):

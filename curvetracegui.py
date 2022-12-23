@@ -2,29 +2,39 @@ import sys
 import time
 from PyQt5.QtCore import pyqtSignal
 import curvetracePSU
-import setup
+from setup import PsuInitWindow
 from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
                              QPushButton, QDoubleSpinBox, QVBoxLayout, QLabel, QSpinBox)
 from powersupply_EMPTY import EmptyPSU
+from powersupply_TEST import TestPSU
+from traceroutine import traceroutine
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.PSUdict = {"Vgs PSU": curvetracePSU.createPSUclass(EmptyPSU)(),
-                        "Vds PSU": curvetracePSU.createPSUclass(EmptyPSU)()}
+        # self.PSUdict = {"Vgs PSU": curvetracePSU.createPSUclass(EmptyPSU)(),
+        #                 "Vds PSU": curvetracePSU.createPSUclass(EmptyPSU)()}
+        self.PSUdict = {"Vgs PSU": curvetracePSU.createPSUclass(TestPSU)("TestPort1"),
+                         "Vds PSU": curvetracePSU.createPSUclass(TestPSU)("TestPort2")}
         self.dutTestParameters = {"Idle sec": 0, "Preheat sec": 0, "Max Power": 0}
 
         self.PsuSetupWin = None
-        self.builtui()
 
-    def builtui(self):
+        self.buildui()
+
+    def buildui(self):
+
+        self.window = QWidget()
+        self.setCentralWidget(self.window)
+
+        self.mainlayout = QVBoxLayout()
+
+        self.window.setLayout(self.mainlayout)
 
         self.setWindowTitle("Curvetrace 0.3")
-        self.window = QWidget()
-        self.mainlayout = QVBoxLayout()
 
         self.layouttopH = QHBoxLayout()
         self.layouttopbottomV = QVBoxLayout()
@@ -39,8 +49,6 @@ class MainWindow(QMainWindow):
 
         self.layouttoprightV = QVBoxLayout()
 
-        self.setCentralWidget(self.window)
-        self.window.setLayout(self.mainlayout)
 
 # top center pane start
         self.PsuVgsLabel = QLabel(self.PSUdict["Vgs PSU"].name)
@@ -117,17 +125,17 @@ class MainWindow(QMainWindow):
         self.MaxpwrSpinbox.setMinimumSize(130, 50)
         self.MaxpwrSpinbox.setMaximumSize(130, 50)
         self.MaxpwrSpinbox.setMinimum(0)
-        self.MaxpwrSpinbox.setMaximum(100)
+        self.MaxpwrSpinbox.setMaximum(300)
         self.layouttopcenterbottomH.addWidget(self.MaxpwrSpinbox)
     # top center bottom end
 
 # top center pane end
 
 # top left pane start
-        self.layouttopleftV.addWidget(self.PSUdict["Vgs PSU"].window)
+        self.layouttopleftV.addWidget(self.PSUdict["Vgs PSU"].PSUwindow)
 
 # right pane start
-        self.layouttoprightV.addWidget(self.PSUdict["Vds PSU"].window)
+        self.layouttoprightV.addWidget(self.PSUdict["Vds PSU"].PSUwindow)
 
 # right pane end
 
@@ -154,26 +162,51 @@ class MainWindow(QMainWindow):
 
     def openpsuwindow(self, PSUdict):
         if self.PsuSetupWin is None:
-            self.PsuSetupWin = setup.PsuInitWindow(PSUdict)
+            #self.PsuSetupWin = setup.PsuInitWindow(PSUdict)
+            self.PsuSetupWin = PsuInitWindow(PSUdict)
+
+            # self.PsuSetupWin.setParent(self)
+            # print(self.PsuSetupWin.parent())
             # self.PsuSetupWin.setWindowModality(QtCore.Qt.WindowModal)
+            # print(self.findChildren(QMainWindow))
             self.PsuSetupWin.Vgspolaritychanged.connect(lambda s: self.psuVgsbutton.set(s))
             self.PsuSetupWin.Vdspolaritychanged.connect(lambda s: self.psuVdsbutton.set(s))
-            self.PsuSetupWin.updateMainWindow.connect(self.builtui)
+            self.PsuSetupWin.updateMainWindow.connect(self.updateGUI)
         self.PsuSetupWin.show()
 
+    def updateGUI(self):
+        self.buildui()
+
     def test(self):
+        traceroutine(self.PSUdict, self.MaxpwrSpinbox)
+
+
+    def freeze(self, freeze):
+        self.psuVgsbutton.button.setDisabled(freeze)
+        self.psuVdsbutton.button.setDisabled(freeze)
+        self.PSUdict["Vgs PSU"].enablespinbxs(freeze)
+        self.PSUdict["Vds PSU"].enablespinbxs(freeze)
+        self.IdleSpinbox.setDisabled(freeze)
+        self.PheatLabel.setDisabled(freeze)
+        self.MaxpwrLabel.setDisabled(freeze)
+
+        return
+        print(self.updatesEnabled())
+        self.layouttoprightV.addWidget(self.PSUdict["Vgs PSU"].PSUwindow)
+        self.layouttopleftV.addWidget(self.PSUdict["Vds PSU"].PSUwindow)
+        return
+
+        self.window.repaint()
+        self.PSUdict["Vgs PSU"].PSUwindow.window().repaint()
+        self.PSUdict["Vgs PSU"].PSUwindow.window().update()
+        return
+        traceroutine(self.PSUdict, self.MaxpwrSpinbox.value())
+        return
         self.PSUdict["Vgs PSU"].turnon()
         self.PSUdict["Vgs PSU"].setvoltage(3)
         time.sleep(5)
         self.PSUdict["Vgs PSU"].setvoltage(0)
         self.PSUdict["Vgs PSU"].turnoff()
-
-        # self.psuVgsbutton.PsuSetupWin.show()
-        # print(get_referrers(self.psuVgsbutton.PsuSetupWin))
-        # b = get_referrers(self.PSUdict)
-        # for i in get_referrers(self.PSUdict):
-        #     print(i)
-        # print(getrefcount(self.PSUdict)) # print(self.PSUdict["Vds PSU"].name)
 
 
 class PsuButtonBox(QWidget):

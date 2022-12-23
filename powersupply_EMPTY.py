@@ -8,10 +8,10 @@ class EmptyPSU:
         self.VMIN = 0
         self.VMAX = 0
         self.IMAX = 0
-        self.VRESSET = 0
+        self.VRESSET = 1
         self.VRESSETCNT = 1
+        self.IRESSET = 1
         self.IRESSETCNT = 1
-        self.IRESSET = 0
         self.port = "None"
-        self.name = "Empty psu"
-        self.MODEL = "emod"
+        self.name = "Empty PSU"
+        self.MODEL = "Empty"
