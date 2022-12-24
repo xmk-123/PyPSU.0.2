@@ -3,8 +3,9 @@
 class TestPSU:
     name = "Test psu"
 
-    def __init__(self, port):
+    def __init__(self, port,):
         super().__init__()
+
         self.VMIN = 0
         self.VMAX = 100
         self.IMAX = 10
@@ -33,8 +34,8 @@ class TestPSU:
         self.current = current
         # print("Setcurrent : ", current)
 
-    def read(self, n=0):
-        self.current = self.voltage * 0.5
+    def read(self, n=0, vgs=1):
+        self.current = (self.voltage * 0.5) ** vgs
         if self.current > self.IMAXwidget.widgetSpinbox.value():
             return {"voltage": self.voltage, "current": self.IMAXwidget.widgetSpinbox.value(), "mode": "CC"}
         return {"voltage": self.voltage, "current": self.current, "mode": "CV"}

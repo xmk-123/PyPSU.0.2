@@ -7,7 +7,8 @@ from setup import PsuInitWindow
 from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
-                             QPushButton, QDoubleSpinBox, QVBoxLayout, QLabel, QSpinBox)
+                             QPushButton, QDoubleSpinBox, QVBoxLayout, QLabel, QSpinBox, QRadioButton, QFrame,
+                             QSizePolicy, QCheckBox)
 from powersupply_EMPTY import EmptyPSU
 from powersupply_TEST import TestPSU
 from traceroutine import worker
@@ -23,6 +24,7 @@ class MainWindow(QMainWindow):
         self.dutTestParameters = {"Idle sec": 0, "Preheat sec": 0, "Max Power": 0}
 
         self.PsuSetupWin = None
+        self.data = None
 
         self.buildui()
 
@@ -38,7 +40,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Curvetrace 0.3")
 
         self.layouttopH = QHBoxLayout()
-        self.layouttopbottomV = QVBoxLayout()
+        self.layoutbottomV = QVBoxLayout()
 
         self.layouttopleftV = QVBoxLayout()
 
@@ -49,6 +51,8 @@ class MainWindow(QMainWindow):
         self.layouttopcenterbottomH = QHBoxLayout()
 
         self.layouttoprightV = QVBoxLayout()
+
+        self.layoutbottomH = QHBoxLayout()
 
         # top center pane start
         self.PsuVgsLabel = QLabel(self.PSUdict["Vgs PSU"].name)
@@ -138,6 +142,30 @@ class MainWindow(QMainWindow):
         self.layouttoprightV.addWidget(self.PSUdict["Vds PSU"].PSUwindow)
 
         # right pane end
+        # bottom start
+
+        Separator = QFrame()
+        Separator.setFrameShape(QFrame.HLine)
+        Separator.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        Separator.setLineWidth(3)
+
+        self.layoutbottomV.addWidget(Separator)
+
+        self.smoothcurveCheckB = QCheckBox("Smooth Curves")
+        self.smoothcurveCheckB.toggled.connect(self.smoothcurves)
+        self.layoutbottomH.addWidget(self.smoothcurveCheckB)
+
+        self.savecurvesB = QPushButton("Save")
+        self.savecurvesB.setMinimumSize(130, 50)
+        self.savecurvesB.setMaximumSize(130, 50)
+        self.savecurvesB.pressed.connect(self.savecurves)
+        self.layoutbottomH.addWidget(self.savecurvesB)
+
+        self.layoutbottomV.addLayout(self.layoutbottomH)
+        self.graphWidget = plotwin()
+        self.layoutbottomV.addWidget(self.graphWidget)
+
+        # bottom end
 
         self.layouttopH.addLayout(self.layouttopleftV)
         self.layouttopH.addStretch()
@@ -157,11 +185,15 @@ class MainWindow(QMainWindow):
 
         self.mainlayout.addLayout(self.layouttopH)
         self.mainlayout.addStretch()
-        self.mainlayout.addLayout(self.layouttopbottomV)
+
+        self.mainlayout.addLayout(self.layoutbottomV)
         self.mainlayout.addStretch()
 
-        self.graphWidget = plotwin()
-        self.mainlayout.addWidget(self.graphWidget)
+    def savecurves(self):
+        print("pressed")
+
+    def smoothcurves(self, smooth):
+        print(smooth)
 
     def openpsuwindow(self, PSUdict):
         if self.PsuSetupWin is None:
@@ -181,15 +213,19 @@ class MainWindow(QMainWindow):
         self.buildui()
 
     def test(self):
-        self.graphWidget.graphWidget.clear()
+        self.starttracing()
+
+    def starttracing(self):
+        self.graphWidget.reset()
         self.thread = QThread()
-        self.worker = worker(self.PSUdict, self.MaxpwrSpinbox, self.graphWidget)
+        self.worker = worker(self.PSUdict, self.data, self.MaxpwrSpinbox)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.traceroutine)
+        self.thread.finished.connect(self.thread.deleteLater)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.newcurve.connect(lambda x: self.graphWidget.newcurve(x))
         self.worker.updateplot.connect(lambda x: self.graphWidget.updateplot(x))
 
         self.thread.start()

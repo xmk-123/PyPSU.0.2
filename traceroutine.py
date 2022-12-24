@@ -6,17 +6,17 @@ from PyQt5.QtCore import pyqtSignal, QObject
 class worker(QObject):
     finished = pyqtSignal()
     updateplot = pyqtSignal(object)
-
-    def __init__(self, _PSUdict, _MaxpwrSpinbox, _graphWidget):
+    newcurve = pyqtSignal(float)
+    def __init__(self, _PSUdict, data,  _MaxpwrSpinbox):
         super().__init__()
         self._PSUdict = _PSUdict
         self._MaxpwrSpinbox = _MaxpwrSpinbox
-        self._graphWidget = _graphWidget
+        self.data = data
 
     def traceroutine(self):
 
         emmSTOP = False
-        c = [[0, [0], [0], ""]]
+        self.data = None
 
         _VgsPSU = self._PSUdict["Vgs PSU"]
         _VdsPSU = self._PSUdict["Vds PSU"]
@@ -36,21 +36,25 @@ class worker(QObject):
         _Vgs = _VgsPSU.VSTARTwidget.widgetSpinbox.value()
         _readVds = _VdsPSU.read(3)
 
-        _i = 1
+        _i = 0
         while _Vgs <= _VgsEND:
-            c.append([_Vgs, [0], [0], [""]])
+            if self.data is None:
+                self.data = [[_Vgs, [0], [0], [""]]]
+            else:
+                self.data.append([_Vgs, [0], [0], [""]])
+
             _VgsPSU.setvoltage(_Vgs)
+            self.newcurve.emit(_Vgs)
             while _Vds <= _VdsEND:
                 _VdsPSU.setcurrent(min(_IdsMAX, self._MaxpwrSpinbox.value() / (_Vds)))
                 _VdsPSU.setvoltage(_Vds)
-                _readVds = _VdsPSU.read(3)
-                c[_i][1].append(_VdsPSU.polarity * _readVds["voltage"])
-                c[_i][2].append(_VdsPSU.polarity * _readVds["current"])
-                c[_i][3].append(_VdsPSU.polarity * _readVds["mode"])
-                # print(_VgsPSU.polarity * _Vgs, _VdsPSU.polarity * _readVds["voltage"], _VdsPSU.polarity * _readVds["current"], _readVds["mode"])
-                # print(c[_i])
-                self.updateplot.emit(c[_i])
-                time.sleep(0.5)
+                _readVds = _VdsPSU.read(3, _Vgs)
+                self.data[_i][1].append(_VdsPSU.polarity * _readVds["voltage"])
+                self.data[_i][2].append(_VdsPSU.polarity * _readVds["current"])
+                self.data[_i][3].append(_VdsPSU.polarity * _readVds["mode"])
+                print(self.data)
+                self.updateplot.emit(self.data)
+                time.sleep(0.1) #  ****************************************************     remove
                 if _readVds["mode"] == "CC":
                     _VdsEND = _Vds - _VdsPSU.STEPwidget.widgetSpinbox.value()
                 _Vds += _VdsPSU.STEPwidget.widgetSpinbox.value()
