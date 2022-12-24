@@ -4,19 +4,19 @@ from PyQt5.QtCore import pyqtSignal, QObject
 
 
 class worker(QObject):
-    finished = pyqtSignal()
+    finished = pyqtSignal(object)
     updateplot = pyqtSignal(object)
     newcurve = pyqtSignal(float)
-    def __init__(self, _PSUdict, data,  _MaxpwrSpinbox):
+
+    def __init__(self, _PSUdict, _MaxpwrSpinbox):
         super().__init__()
         self._PSUdict = _PSUdict
         self._MaxpwrSpinbox = _MaxpwrSpinbox
-        self.data = data
 
     def traceroutine(self):
 
         emmSTOP = False
-        self.data = None
+        _data = None
 
         _VgsPSU = self._PSUdict["Vgs PSU"]
         _VdsPSU = self._PSUdict["Vds PSU"]
@@ -38,10 +38,10 @@ class worker(QObject):
 
         _i = 0
         while _Vgs <= _VgsEND:
-            if self.data is None:
-                self.data = [[_Vgs, [0], [0], [""]]]
+            if _data is None:
+                _data = [[_Vgs, [0], [0], [""]]]
             else:
-                self.data.append([_Vgs, [0], [0], [""]])
+                _data.append([_Vgs, [0], [0], [""]])
 
             _VgsPSU.setvoltage(_Vgs)
             self.newcurve.emit(_Vgs)
@@ -49,11 +49,11 @@ class worker(QObject):
                 _VdsPSU.setcurrent(min(_IdsMAX, self._MaxpwrSpinbox.value() / (_Vds)))
                 _VdsPSU.setvoltage(_Vds)
                 _readVds = _VdsPSU.read(3, _Vgs)
-                self.data[_i][1].append(_VdsPSU.polarity * _readVds["voltage"])
-                self.data[_i][2].append(_VdsPSU.polarity * _readVds["current"])
-                self.data[_i][3].append(_VdsPSU.polarity * _readVds["mode"])
-                print(self.data)
-                self.updateplot.emit(self.data)
+                _data[_i][1].append(_VdsPSU.polarity * _readVds["voltage"])
+                _data[_i][2].append(_VdsPSU.polarity * _readVds["current"])
+                _data[_i][3].append(_VdsPSU.polarity * _readVds["mode"])
+               # print(_data)#  ****************************************************     remove
+                self.updateplot.emit(_data)
                 time.sleep(0.1) #  ****************************************************     remove
                 if _readVds["mode"] == "CC":
                     _VdsEND = _Vds - _VdsPSU.STEPwidget.widgetSpinbox.value()
@@ -62,5 +62,5 @@ class worker(QObject):
             _Vgs += _VgsPSU.STEPwidget.widgetSpinbox.value()
             _i += 1
         c = []
-        self.finished.emit()
+        self.finished.emit(_data)
 

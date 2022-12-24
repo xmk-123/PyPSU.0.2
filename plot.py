@@ -1,4 +1,5 @@
 import pyqtgraph as pg
+from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 
 
@@ -23,7 +24,6 @@ class plotwin(QWidget):
     def updateplot(self, data):
         self.reset()
         for c in data:
-            print(c)
             self.plotline = self.graphWidget.plot(c[1], c[2])
             self.newcurve(c[0])
 
@@ -31,4 +31,5 @@ class plotwin(QWidget):
         self.curves = []
         self.i = -1
         self.graphWidget.clear()
+
 

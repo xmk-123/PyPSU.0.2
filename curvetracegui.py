@@ -1,6 +1,10 @@
 import sys
 import time
+
+import numpy as np
 from PyQt5.QtCore import pyqtSignal, QThread
+from scipy.interpolate import make_interp_spline
+
 import curvetracePSU
 from plot import plotwin
 from setup import PsuInitWindow
@@ -11,7 +15,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
                              QSizePolicy, QCheckBox)
 from powersupply_EMPTY import EmptyPSU
 from powersupply_TEST import TestPSU
-from traceroutine import worker
+import traceroutine
+import copy
 
 
 class MainWindow(QMainWindow):
@@ -193,7 +198,23 @@ class MainWindow(QMainWindow):
         print("pressed")
 
     def smoothcurves(self, smooth):
-        print(smooth)
+        if smooth:
+            print("smoothed")
+            sdata = copy.deepcopy(self.data)
+            print("BEFORE")
+            print(self.data)
+            for l in sdata:
+                xnew = np.linspace(min(l[1]), max(l[1]), 100)
+                spl = make_interp_spline(l[1], l[2], 3)
+                ynew = spl(xnew)
+                l[1] = xnew
+                l[2] = ynew
+            self.graphWidget.updateplot(sdata)
+            print("AFTER")
+            print(self.data)
+        else:
+            print("NOT smoothed")
+            self.graphWidget.updateplot(self.data)
 
     def openpsuwindow(self, PSUdict):
         if self.PsuSetupWin is None:
@@ -206,11 +227,8 @@ class MainWindow(QMainWindow):
             # print(self.findChildren(QMainWindow))
             self.PsuSetupWin.Vgspolaritychanged.connect(lambda s: self.psuVgsbutton.set(s))
             self.PsuSetupWin.Vdspolaritychanged.connect(lambda s: self.psuVdsbutton.set(s))
-            self.PsuSetupWin.updateMainWindow.connect(self.updateGUI)
+            self.PsuSetupWin.updateMainWindow.connect(self.buildui())
         self.PsuSetupWin.show()
-
-    def updateGUI(self):
-        self.buildui()
 
     def test(self):
         self.starttracing()
@@ -218,17 +236,21 @@ class MainWindow(QMainWindow):
     def starttracing(self):
         self.graphWidget.reset()
         self.thread = QThread()
-        self.worker = worker(self.PSUdict, self.data, self.MaxpwrSpinbox)
+        self.worker = traceroutine.worker(self.PSUdict, self.MaxpwrSpinbox)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.traceroutine)
         self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.finished.connect(self.getdata)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.newcurve.connect(lambda x: self.graphWidget.newcurve(x))
         self.worker.updateplot.connect(lambda x: self.graphWidget.updateplot(x))
 
         self.thread.start()
+
+    def getdata(self, data):
+        self.data = data
 
     def freeze(self, freeze):
         self.psuVgsbutton.button.setDisabled(freeze)
