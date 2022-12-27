@@ -28,7 +28,7 @@ def createPSUclass(cls):
                 self.VSTARTwidget.widgetSpinbox.valueChanged.connect(self.Vstartconditions)
                 self.VENDwidget.widgetSpinbox.valueChanged.connect(self.Vendconditions)
 
-                self.enablespinbxs(cls != EmptyPSU)
+                self.disablespinbxs(cls == EmptyPSU)
 
         def Vstartconditions(self, value):
             if value > self.VENDwidget.widgetSpinbox.value():
@@ -38,9 +38,9 @@ def createPSUclass(cls):
             if value < self.VSTARTwidget.widgetSpinbox.value():
                 self.VSTARTwidget.widgetSpinbox.setValue(self.VENDwidget.widgetSpinbox.value())
 
-        def enablespinbxs(self, enable):
+        def disablespinbxs(self, disable):
             for widget in self._PSUlayout.parentWidget().findChildren(QDoubleSpinBox):
-                widget.setEnabled(enable)
+                widget.setDisabled(disable)
 
     class ParameterWidget(QWidget):
         def __init__(self, name, minval, maxval, minstep, resolution):

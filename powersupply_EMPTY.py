@@ -3,7 +3,7 @@
 class EmptyPSU:
     name = "Empty psu"
 
-    def __init__(self, port):
+    def __init__(self, port=None):
         super().__init__()
         self.VMIN = 0
         self.VMAX = 0
@@ -15,3 +15,6 @@ class EmptyPSU:
         self.port = "None"
         self.name = "Empty PSU"
         self.MODEL = "Empty"
+
+    def setvoltage(_Vgs, x=None):
+        pass

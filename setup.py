@@ -1,4 +1,3 @@
-
 import serial
 from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSignal
@@ -8,12 +7,8 @@ import logging
 import serial.tools.list_ports
 
 from serial import SerialException
-
 import curvetracePSU
-import powersupply_KORAD
-from powersupply_COMPOSITE import PSUCOMPOSITE
-from powersupply_EMPTY import EmptyPSU
-from powersupply_TEST import TestPSU
+from constants import *
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -23,7 +18,6 @@ formatter = logging.Formatter('%(levelname)s (%(name)s): %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-physicalpsus = {"Korad": powersupply_KORAD.KORAD, "Test PSU": TestPSU}
 AvailablePSUs = {}
 
 
@@ -52,7 +46,7 @@ class PsuInitWindow(QMainWindow):
         _psusLayout.addWidget(self.PsusLabel)
 
         self.PSUsListWidget = QListWidget()
-        self.PSUsListWidget.addItems(physicalpsus.keys())
+        self.PSUsListWidget.addItems(physicalpsusClasses.keys())
         self.PSUsListWidget.setMinimumSize(250, 35)
         self.PSUsListWidget.adjustSize()
         self.PSUsListWidget.currentItemChanged.connect(lambda p: self.initpsubutton.setText("Init\n %s PSU" % p.text()))
@@ -263,7 +257,7 @@ class PsuInitWindow(QMainWindow):
 
     def ConnectPSU(self):
         if len(self.PSUsListWidget.selectedItems()) > 0 and len(self.PortsListWidget.selectedItems()) > 0:
-            _PSUclass = physicalpsus[self.PSUsListWidget.currentItem().text()]
+            _PSUclass = physicalpsusClasses[self.PSUsListWidget.currentItem().text()]
             _selectedPort = self.PortsListWidget.currentItem().text()
             try:
                 curvtracePSU = curvetracePSU.createPSUclass(_PSUclass)(_selectedPort)

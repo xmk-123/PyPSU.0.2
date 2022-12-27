@@ -8,7 +8,6 @@ import serial
 import time
 import logging
 
-
 # set up logger:
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -158,13 +157,13 @@ class KORAD:
                 self._query('VSET1:' + str(voltagetarget))
         else:
             logger.warning("voltage setting out of bounds "
-                            + str(self. VMAX) + " max / " + str(self.VMIN) + " min ")
+                           + str(self.VMAX) + " max / " + str(self.VMIN) + " min ")
             return 1
 
         tmp_reading1 = self.read()
         t0 = time.time()
         while tmp_reading1["voltage"] != voltagetarget:
-            print(tmp_reading1["voltage"])
+            #print(tmp_reading1["voltage"])
             time.sleep(0.1)
             tmp_reading2 = self.read()
             if tmp_reading1["mode"] == "CC":
@@ -242,22 +241,3 @@ class KORAD:
                     self.MAXSETTLETIME) + ' s! DUT drifting? Noise?')
                 break
         return dict(zip(keys, (v, i, mode)))
-
-
-if __name__ == "__main__":
-    psu = KORAD()
-    psu.turnon()
-    psu.setvoltage(1)
-    psu.setvoltage(10)
-    print(psu.read())
-
-    # psu.turnon()
-    # for v in range(int(psu.VMAX)):
-    #     psu.setvoltage(v)
-    #     print(psu.read(3))
-
-    # while True:
-    #     cmmd = input('Enter command with parameters\n')
-    #     # print(exec(cmmd))
-    #     exec(cmmd)
-    #     # md = input('ooooooooEnter command with parameters\n')

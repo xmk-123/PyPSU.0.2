@@ -1,37 +1,41 @@
 import sys
-import time
 
-import numpy as np
 from PyQt5.QtCore import pyqtSignal, QThread
-from scipy.interpolate import make_interp_spline
 
-import curvetracePSU
 from plot import plotwin
 from setup import PsuInitWindow
 from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
                              QPushButton, QDoubleSpinBox, QVBoxLayout, QLabel, QSpinBox, QRadioButton, QFrame,
-                             QSizePolicy, QCheckBox)
-from powersupply_EMPTY import EmptyPSU
-from powersupply_TEST import TestPSU
+                             QSizePolicy, QCheckBox, QMenu, QAction)
 import traceroutine
-import copy
+from initsetup import StartupSettings
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        # self.PSUdict = {"Vgs PSU": curvetracePSU.createPSUclass(EmptyPSU)(),
-        #                 "Vds PSU": curvetracePSU.createPSUclass(EmptyPSU)()}
-        self.PSUdict = {"Vgs PSU": curvetracePSU.createPSUclass(TestPSU)("TestPort1"),
-                        "Vds PSU": curvetracePSU.createPSUclass(TestPSU)("TestPort2")}
+        self.PSUdict = {}
+        self.startupsettings = StartupSettings(self.PSUdict)
+        self.startupsettings.setpsus()
+
         self.dutTestParameters = {"Idle sec": 0, "Preheat sec": 0, "Max Power": 0}
 
         self.PsuSetupWin = None
         self.data = None
 
         self.buildui()
+
+        self.menuBar = self.menuBar()
+        fileMenu = QMenu("&File", self)
+        self.menuBar.addMenu(fileMenu)
+
+        self._startupsettingsMenuItem = QAction(QIcon(), '&Save startup Settings', self)
+        self._startupsettingsMenuItem.setStatusTip('New document')
+        self._startupsettingsMenuItem.triggered.connect(self.startupsettings.savesettings)
+
+        fileMenu.addAction(self._startupsettingsMenuItem)
 
     def buildui(self):
 
@@ -149,6 +153,7 @@ class MainWindow(QMainWindow):
         # right pane end
         # bottom start
 
+        self.graphWidget = plotwin()
         Separator = QFrame()
         Separator.setFrameShape(QFrame.HLine)
         Separator.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
@@ -157,8 +162,15 @@ class MainWindow(QMainWindow):
         self.layoutbottomV.addWidget(Separator)
 
         self.smoothcurveCheckB = QCheckBox("Smooth Curves")
-        self.smoothcurveCheckB.toggled.connect(self.smoothcurves)
+        self.smoothcurveCheckB.toggled.connect(lambda x: self.graphWidget.smoothcurves(self.data, x))
         self.layoutbottomH.addWidget(self.smoothcurveCheckB)
+
+        self.plotlimitsCheckB = QCheckBox("Plot Power lim")
+        self.plotlimitsCheckB.toggled.connect(lambda x: self.graphWidget.plotlimits(self.MaxpwrSpinbox.value(),
+                                                                                    self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.value(),
+                                                                                    self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.value(),
+                                                                                    x))
+        self.layoutbottomH.addWidget(self.plotlimitsCheckB)
 
         self.savecurvesB = QPushButton("Save")
         self.savecurvesB.setMinimumSize(130, 50)
@@ -167,7 +179,7 @@ class MainWindow(QMainWindow):
         self.layoutbottomH.addWidget(self.savecurvesB)
 
         self.layoutbottomV.addLayout(self.layoutbottomH)
-        self.graphWidget = plotwin()
+
         self.layoutbottomV.addWidget(self.graphWidget)
 
         # bottom end
@@ -197,25 +209,6 @@ class MainWindow(QMainWindow):
     def savecurves(self):
         print("pressed")
 
-    def smoothcurves(self, smooth):
-        if smooth:
-            print("smoothed")
-            sdata = copy.deepcopy(self.data)
-            print("BEFORE")
-            print(self.data)
-            for l in sdata:
-                xnew = np.linspace(min(l[1]), max(l[1]), 100)
-                spl = make_interp_spline(l[1], l[2], 3)
-                ynew = spl(xnew)
-                l[1] = xnew
-                l[2] = ynew
-            self.graphWidget.updateplot(sdata)
-            print("AFTER")
-            print(self.data)
-        else:
-            print("NOT smoothed")
-            self.graphWidget.updateplot(self.data)
-
     def openpsuwindow(self, PSUdict):
         if self.PsuSetupWin is None:
             # self.PsuSetupWin = setup.PsuInitWindow(PSUdict)
@@ -227,13 +220,14 @@ class MainWindow(QMainWindow):
             # print(self.findChildren(QMainWindow))
             self.PsuSetupWin.Vgspolaritychanged.connect(lambda s: self.psuVgsbutton.set(s))
             self.PsuSetupWin.Vdspolaritychanged.connect(lambda s: self.psuVdsbutton.set(s))
-            self.PsuSetupWin.updateMainWindow.connect(self.buildui())
+            self.PsuSetupWin.updateMainWindow.connect(self.buildui)
         self.PsuSetupWin.show()
 
     def test(self):
         self.starttracing()
 
     def starttracing(self):
+        self.freeze(True)
         self.graphWidget.reset()
         self.thread = QThread()
         self.worker = traceroutine.worker(self.PSUdict, self.MaxpwrSpinbox)
@@ -242,10 +236,11 @@ class MainWindow(QMainWindow):
         self.thread.started.connect(self.worker.traceroutine)
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.finished.connect(self.getdata)
+        self.worker.finished.connect(lambda x: self.freeze(False))
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.newcurve.connect(lambda x: self.graphWidget.newcurve(x))
-        self.worker.updateplot.connect(lambda x: self.graphWidget.updateplot(x))
+        self.worker.plotdata.connect(lambda x: self.graphWidget.plotdata(x))
 
         self.thread.start()
 
@@ -255,29 +250,14 @@ class MainWindow(QMainWindow):
     def freeze(self, freeze):
         self.psuVgsbutton.button.setDisabled(freeze)
         self.psuVdsbutton.button.setDisabled(freeze)
-        self.PSUdict["Vgs PSU"].enablespinbxs(freeze)
-        self.PSUdict["Vds PSU"].enablespinbxs(freeze)
+        self.PSUdict["Vgs PSU"].disablespinbxs(freeze)
+        self.PSUdict["Vds PSU"].disablespinbxs(freeze)
         self.IdleSpinbox.setDisabled(freeze)
         self.PheatLabel.setDisabled(freeze)
         self.MaxpwrLabel.setDisabled(freeze)
-
-        return
-        print(self.updatesEnabled())
-        self.layouttoprightV.addWidget(self.PSUdict["Vgs PSU"].PSUwindow)
-        self.layouttopleftV.addWidget(self.PSUdict["Vds PSU"].PSUwindow)
-        return
-
-        self.window.repaint()
-        self.PSUdict["Vgs PSU"].PSUwindow.window().repaint()
-        self.PSUdict["Vgs PSU"].PSUwindow.window().update()
-        return
-        traceroutine(self.PSUdict, self.MaxpwrSpinbox.value())
-        return
-        self.PSUdict["Vgs PSU"].turnon()
-        self.PSUdict["Vgs PSU"].setvoltage(3)
-        time.sleep(5)
-        self.PSUdict["Vgs PSU"].setvoltage(0)
-        self.PSUdict["Vgs PSU"].turnoff()
+        self.smoothcurveCheckB.setDisabled(freeze)
+        self.plotlimitsCheckB.setDisabled(freeze)
+        self.savecurvesB.setDisabled(freeze)
 
 
 class PsuButtonBox(QWidget):
