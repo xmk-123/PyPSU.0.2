@@ -2,27 +2,31 @@ import sys
 
 from PyQt5.QtCore import pyqtSignal, QThread
 
+from VirtualPSU import VirtualPSU
 from plot import plotwin
 from setup import PsuInitWindow
 from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
-                             QPushButton, QDoubleSpinBox, QVBoxLayout, QLabel, QSpinBox, QRadioButton, QFrame,
-                             QSizePolicy, QCheckBox, QMenu, QAction)
+                             QPushButton, QDoubleSpinBox, QVBoxLayout, QLabel, QSpinBox, QFrame,
+                             QSizePolicy, QCheckBox, QMenu, QAction, QMessageBox)
 import traceroutine
-from initsetup import StartupSettings
+
+from  powersupply_EMPTY import EmptyPSU
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.PSUdict = {}
-        self.startupsettings = StartupSettings(self.PSUdict)
-        self.startupsettings.setpsus()
+        self.PSUdict = {"Vgs PSU": VirtualPSU([EmptyPSU()]),
+                        "Vds PSU": VirtualPSU([EmptyPSU()])}
+
+        self.PsuSetupWin = PsuInitWindow(self.PSUdict)
+        self.PsuSetupWin.Vgspolaritychanged.connect(lambda s: self.psuVgsbutton.set(s))
+        self.PsuSetupWin.Vdspolaritychanged.connect(lambda s: self.psuVdsbutton.set(s))
+        self.PsuSetupWin.updateMainWindow.connect(self.buildui)
 
         self.dutTestParameters = {"Idle sec": 0, "Preheat sec": 0, "Max Power": 0}
-
-        self.PsuSetupWin = None
         self.data = None
 
         self.buildui()
@@ -31,21 +35,24 @@ class MainWindow(QMainWindow):
         fileMenu = QMenu("&File", self)
         self.menuBar.addMenu(fileMenu)
 
-        self._startupsettingsMenuItem = QAction(QIcon(), '&Save startup Settings', self)
-        self._startupsettingsMenuItem.setStatusTip('New document')
-        self._startupsettingsMenuItem.triggered.connect(self.startupsettings.savesettings)
+        self._savesettingsMenuItem = QAction(QIcon(), '&Save startup Settings', self)
+        self._savesettingsMenuItem.setStatusTip('New document')
+        self._savesettingsMenuItem.triggered.connect(self.PsuSetupWin.savesettings)
 
-        fileMenu.addAction(self._startupsettingsMenuItem)
+        fileMenu.addAction(self._savesettingsMenuItem)
+
+        self._testMenuItem = QAction(QIcon(), '&Test  ', self)
+        self._testMenuItem.setStatusTip('Test')
+        self._testMenuItem.triggered.connect(self.test2)
+
+        fileMenu.addAction(self._testMenuItem)
 
     def buildui(self):
 
         self.window = QWidget()
         self.setCentralWidget(self.window)
-
         self.mainlayout = QVBoxLayout()
-
         self.window.setLayout(self.mainlayout)
-
         self.setWindowTitle("Curvetrace 0.3")
 
         self.layouttopH = QHBoxLayout()
@@ -153,7 +160,7 @@ class MainWindow(QMainWindow):
         # right pane end
         # bottom start
 
-        self.graphWidget = plotwin()
+        self.plot_area = plotwin()
         Separator = QFrame()
         Separator.setFrameShape(QFrame.HLine)
         Separator.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
@@ -162,14 +169,14 @@ class MainWindow(QMainWindow):
         self.layoutbottomV.addWidget(Separator)
 
         self.smoothcurveCheckB = QCheckBox("Smooth Curves")
-        self.smoothcurveCheckB.toggled.connect(lambda x: self.graphWidget.smoothcurves(self.data, x))
+        self.smoothcurveCheckB.toggled.connect(lambda x: self.plot_area.smoothcurves(self.data, x))
         self.layoutbottomH.addWidget(self.smoothcurveCheckB)
 
         self.plotlimitsCheckB = QCheckBox("Plot Power lim")
-        self.plotlimitsCheckB.toggled.connect(lambda x: self.graphWidget.plotlimits(self.MaxpwrSpinbox.value(),
-                                                                                    self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.value(),
-                                                                                    self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.value(),
-                                                                                    x))
+        self.plotlimitsCheckB.toggled.connect(lambda x: self.plot_area.plotlimits(self.MaxpwrSpinbox.value(),
+                                                                                  self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.value(),
+                                                                                  self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.value(),
+                                                                                  x))
         self.layoutbottomH.addWidget(self.plotlimitsCheckB)
 
         self.savecurvesB = QPushButton("Save")
@@ -180,7 +187,7 @@ class MainWindow(QMainWindow):
 
         self.layoutbottomV.addLayout(self.layoutbottomH)
 
-        self.layoutbottomV.addWidget(self.graphWidget)
+        self.layoutbottomV.addWidget(self.plot_area)
 
         # bottom end
 
@@ -210,39 +217,55 @@ class MainWindow(QMainWindow):
         print("pressed")
 
     def openpsuwindow(self, PSUdict):
-        if self.PsuSetupWin is None:
-            # self.PsuSetupWin = setup.PsuInitWindow(PSUdict)
-            self.PsuSetupWin = PsuInitWindow(PSUdict)
+        # if self.PsuSetupWin is None:
+        #     # self.PsuSetupWin = setup.PsuInitWindow(PSUdict)
+        #     self.PsuSetupWin = PsuInitWindow(PSUdict)
 
             # self.PsuSetupWin.setParent(self)
             # print(self.PsuSetupWin.parent())
             # self.PsuSetupWin.setWindowModality(QtCore.Qt.WindowModal)
             # print(self.findChildren(QMainWindow))
-            self.PsuSetupWin.Vgspolaritychanged.connect(lambda s: self.psuVgsbutton.set(s))
-            self.PsuSetupWin.Vdspolaritychanged.connect(lambda s: self.psuVdsbutton.set(s))
-            self.PsuSetupWin.updateMainWindow.connect(self.buildui)
+
         self.PsuSetupWin.show()
 
     def test(self):
         self.starttracing()
 
+    def test2(self):
+        self.PsuSetupWin._settings.clear()
+        print(self.PsuSetupWin)
+        if self.PsuSetupWin:
+            print("is open psu setup win")
+
     def starttracing(self):
-        self.freeze(True)
-        self.graphWidget.reset()
-        self.thread = QThread()
-        self.worker = traceroutine.worker(self.PSUdict, self.MaxpwrSpinbox)
-        self.worker.moveToThread(self.thread)
+        print()
+        if self.PSUdict["Vds PSU"].name != "Empty PSU":
+            self.freeze(True)
+            self.plot_area.reset()
+            self.thread = QThread()
+            self.worker = traceroutine.worker(self.PSUdict, self.MaxpwrSpinbox)
+            self.worker.moveToThread(self.thread)
 
-        self.thread.started.connect(self.worker.traceroutine)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.worker.finished.connect(self.getdata)
-        self.worker.finished.connect(lambda x: self.freeze(False))
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.worker.newcurve.connect(lambda x: self.graphWidget.newcurve(x))
-        self.worker.plotdata.connect(lambda x: self.graphWidget.plotdata(x))
+            self.thread.started.connect(self.worker.traceroutine)
+            self.thread.finished.connect(self.thread.deleteLater)
+            self.worker.finished.connect(self.getdata)
+            self.worker.finished.connect(lambda x: self.freeze(False))
+            self.worker.finished.connect(self.thread.quit)
+            self.worker.finished.connect(self.worker.deleteLater)
+            self.worker.newcurve.connect(lambda x: self.plot_area.newcurve(x))
+            self.worker.plotdata.connect(lambda x: self.plot_area.plotdata(x))
 
-        self.thread.start()
+            self.thread.start()
+        else:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+
+            msg.setText("No PSU for Vds has been setup")
+            msg.setInformativeText("Press on one of the PSU buttons - red/gray buttons- to setup the PSU")
+            msg.setWindowTitle("Vds missing")
+            msg.setDetailedText("In the case that only 1 PSU will be used, it must be the Vds PSU not the Vgs")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec()
 
     def getdata(self, data):
         self.data = data
@@ -258,6 +281,10 @@ class MainWindow(QMainWindow):
         self.smoothcurveCheckB.setDisabled(freeze)
         self.plotlimitsCheckB.setDisabled(freeze)
         self.savecurvesB.setDisabled(freeze)
+
+    def closeEvent(self, event):
+        if self.PsuSetupWin:
+            self.PsuSetupWin.deleteLater()
 
 
 class PsuButtonBox(QWidget):

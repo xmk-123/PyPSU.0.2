@@ -44,8 +44,8 @@ class worker(QObject):
             _VgsPSU.setvoltage(_Vgs)
             self.newcurve.emit(_Vgs)
             while _Vds <= _VdsEND:
-                _VdsPSU.setcurrent(min(_IdsMAX, self._MaxP / (_Vds)))
-                print("Vds PSU current set at : " + str(min(_IdsMAX, self._MaxP / (_Vds))))
+                _VdsPSU.setcurrent(min(_IdsMAX, self._MaxP / _Vds))
+                print("Vds PSU current set at : " + str(min(_IdsMAX, self._MaxP / _Vds)))
                 print(self._MaxP)
                 _VdsPSU.setvoltage(_Vds)
                 _readVds = _VdsPSU.read(3)
@@ -65,7 +65,7 @@ class worker(QObject):
         _VdsPSU.setvoltage(0)
         _VdsPSU.setcurrent(0)
         if _VgsPSU.name != "Empty PSU":
-            _VgsPSU.turnon()
+            _VgsPSU.turnoff()
             _VgsPSU.setvoltage(0)
             _VgsPSU.setcurrent(0)
 

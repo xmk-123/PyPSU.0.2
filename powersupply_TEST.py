@@ -13,11 +13,13 @@ class TestPSU:
         self.VRESSETCNT = 0 #len(str(self.VRESSET).split(".")[1])
         self.IRESSET = 1
         self.IRESSETCNT = 0 #len(str(self.IRESSET).split(".")[1])
+        self.PMAX = 300
         self.port = port
         self.name = "Test PSU"
         self.MODEL = "Test"
         self.voltage = 0
         self.current = 0
+        self.polarity = True
 
     def turnoff(self):
         pass

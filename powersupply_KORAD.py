@@ -90,6 +90,7 @@ class KORAD:
             self.IOFFSETMAX = v[9]
             self.MAXSETTLETIME = v[10]
             self.READIDLETIME = self.MAXSETTLETIME / 50
+            self.polarity = True
 
             logger.info('VRESSETCNTMAX = ' + str(self.VRESSETCNT) + '\n' +
                         'self.VMIN = ' + str(self.VMIN) + '\n' +
