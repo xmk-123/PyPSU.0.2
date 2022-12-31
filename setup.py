@@ -23,12 +23,12 @@ AvailablePSUs = {}
 usedports = []
 
 
-def getkey(value):
-    for psu, PSUclass in physicalpsusClasses.items():
-        if PSUclass.__name__ == value:
-            return psu
-    else:
-        return EmptyPSU
+def getkey(psu_class):
+    for key, PSUclass in physicalpsusClasses.items():
+        if PSUclass == psu_class:
+            return key
+        # else:
+        #     return "EmptyPSU"
 
 
 class PsuInitWindow(QMainWindow):
@@ -276,8 +276,11 @@ class PsuInitWindow(QMainWindow):
 
     def checkandconnect_physical_psu(self):
         if len(self.PSUsListWidget.selectedItems()) > 0 and len(self.PortsListWidget.selectedItems()) > 0:
-            self.connect_physical_psu(physicalpsusClasses[self.PSUsListWidget.currentItem().text()],
-                                      self.PortsListWidget.currentItem().text())
+            ready_psu_name = self.connect_physical_psu(physicalpsusClasses[self.PSUsListWidget.currentItem().text()],
+                                                       self.PortsListWidget.currentItem().text())
+            self.AvailablePSUsWidget.addItem(ready_psu_name)
+            self.PortsListWidget.takeItem(self.PortsListWidget.currentRow())
+            self.refreshports()
 
     def connect_physical_psu(self, _psu_class, _selected_port):
         try:
@@ -285,10 +288,9 @@ class PsuInitWindow(QMainWindow):
             ready_psu_name = str(physical_psu_instance.name + " / " + physical_psu_instance.MODEL + "\n   at port: " + physical_psu_instance.port)
             physical_psu_instance.name = ready_psu_name
             AvailablePSUs.update({ready_psu_name: physical_psu_instance})
-            self.AvailablePSUsWidget.addItem(ready_psu_name)
-            self.PortsListWidget.takeItem(self.PortsListWidget.currentRow())
-            usedports.append(_selected_port)
             physical_psu_instance = None
+            usedports.append(_selected_port)
+            return ready_psu_name
 
         except SerialException as e:
             logger.warning("error\n %s" % e)
@@ -310,10 +312,10 @@ class PsuInitWindow(QMainWindow):
 
     def create_virtual_psus(self):
 
-        _VgsPSUsnames = [str(self.VgsPSUsListWidget.item(i).text()) for i in range(self.VgsPSUsListWidget.count())]
-        _VdsPSUsnames = [str(self.VdsPSUsListWidget.item(i).text()) for i in range(self.VdsPSUsListWidget.count())]
+        _VgsPSUsSelected = [str(self.VgsPSUsListWidget.item(i).text()) for i in range(self.VgsPSUsListWidget.count())]
+        _VdsPSUsSelected = [str(self.VdsPSUsListWidget.item(i).text()) for i in range(self.VdsPSUsListWidget.count())]
 
-        for names, key in [(_VgsPSUsnames, "Vgs PSU"), (_VdsPSUsnames, "Vds PSU")]:
+        for names, key in [(_VgsPSUsSelected, "Vgs PSU"), (_VdsPSUsSelected, "Vds PSU")]:
 
             match len(names):
                 case 0:
@@ -322,70 +324,60 @@ class PsuInitWindow(QMainWindow):
                     self.PSUdict[key] = VirtualPSU([AvailablePSUs[names[0]]])
                 case _ if len(names) > 1:
                     self.PSUdict[key] = VirtualPSU([AvailablePSUs[name] for name in names])
-                    #composite_psus_list = []
-                    # for name in names:
-                    #     composite_psus_list.append(physicalpsusClasses[name.split(' /')[0]](name.rsplit(': ', 1)[0]))
-                    # self.PSUdict[key] = PSUCOMPOSITE(composite_psus_list)
                 case _:
                     return
         self.updateMainWindow.emit(True)
 
-        # ports = [s for s in _selected]
-        # if len(_PhysicalPSU) > 0:
-        #     if len(ports) > 0:  # to select multiple entries
-        #         if ports[0].text() == "None" and self.port is not None:
-        #             self.serial = serial.Serial(self.port)
-        #             self.serial.close()
-        #             self.port = None
-
     def applysettings(self):
         try:
-            _vgs_setting = self._settings.value("Vgs PSU")
-            _vds_setting = self._settings.value("Vds PSU")
+            _vgs_settings = self._settings.value("Vgs physical PSU objects")
+            _vds_settings = self._settings.value("Vds physical PSU objects")
 
-            if _vgs_setting is not None and _vds_setting is not None:
-                _vgsport = self._settings.value("Vgs PSU port")
-                _vdsport = self._settings.value("Vds PSU port")
+            if _vgs_settings is not None and _vds_settings is not None:
+                for psu_class, port in _vgs_settings:
+                    ready_psu_name = self.connect_physical_psu(psu_class, port)
+                    self.VgsPSUsListWidget.addItem(ready_psu_name)
 
-                self.connect_physical_psu(physicalpsusClasses[_vgs_setting], _vgsport)
-                self.PSUdict["Vgs PSU"] = curvetracePSU.createPSUclass(physicalpsusClasses[_vgs_setting])(_vgsport)
+                for psu_class, port in _vds_settings:
+                    ready_psu_name = self.connect_physical_psu(psu_class, port)
+                    self.VdsPSUsListWidget.addItem(ready_psu_name)
+
                 self.PSUdict["Vgs PSU"].VSTARTwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU start")))
                 self.PSUdict["Vgs PSU"].VENDwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU end")))
                 self.PSUdict["Vgs PSU"].STEPwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU step")))
                 self.PSUdict["Vgs PSU"].IMAXwidget.widgetSpinbox.setValue(int(self._settings.value("Vds PSU Imax")))
 
-                self.PSUdict["Vds PSU"] = curvetracePSU.createPSUclass(physicalpsusClasses[_vds_setting])(_vdsport)
                 self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU start")))
                 self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU end")))
                 self.PSUdict["Vds PSU"].STEPwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU step")))
                 self.PSUdict["Vds PSU"].IMAXwidget.widgetSpinbox.setValue(int(self._settings.value("Vds PSU Imax")))
             else:
-                self.PSUdict["Vgs PSU"] = curvetracePSU.createPSUclass(EmptyPSU)()
-                self.PSUdict["Vds PSU"] = curvetracePSU.createPSUclass(EmptyPSU)()
+                self.PSUdict["Vgs PSU"] = VirtualPSU([EmptyPSU()])
+                self.PSUdict["Vds PSU"] = VirtualPSU([EmptyPSU()])
 
         except (KeyError, TypeError) as e:
             logger.exception("Key error in applysettings method of StartupSettings class")
-            self.PSUdict["Vgs PSU"] = curvetracePSU.createPSUclass(EmptyPSU)()
-            self.PSUdict["Vds PSU"] = curvetracePSU.createPSUclass(EmptyPSU)()
+            self.PSUdict["Vgs PSU"] = VirtualPSU([EmptyPSU()])
+            self.PSUdict["Vds PSU"] = VirtualPSU([EmptyPSU()])
 
     def savesettings(self):
-        print(self.PSUdict["Vgs PSU"].physical_psu_objects_list)
 
+        vgs_psu_class_names_and_ports = []
+        vds_psu_class_names_and_ports = []
 
-        return
+        for psu_object in self.PSUdict["Vgs PSU"].physical_psu_objects_list:
+            vgs_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
 
-        self._settings.setValue("Vgs PSU", getkey(*vgs_psu_class_name))
-        self._settings.setValue("Vds PSU", getkey(*vds_psu_class_name))
-        _vgsport = self.PSUdict["Vgs PSU"].port
-        _vdsport = self.PSUdict["Vds PSU"].port
+        for psu_object in self.PSUdict["Vds PSU"].physical_psu_objects_list:
+            vgs_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
 
-        self._settings.setValue("Vgs PSU port", _vgsport)
+        self._settings.setValue("Vgs physical PSU objects", vgs_psu_class_names_and_ports)
         self._settings.setValue("Vgs PSU start", self.PSUdict["Vgs PSU"].VSTARTwidget.widgetSpinbox.value())
         self._settings.setValue("Vds PSU end", self.PSUdict["Vgs PSU"].VENDwidget.widgetSpinbox.value())
         self._settings.setValue("Vgs PSU step", self.PSUdict["Vgs PSU"].STEPwidget.widgetSpinbox.value())
         self._settings.setValue("Vgs PSU Imax", self.PSUdict["Vgs PSU"].IMAXwidget.widgetSpinbox.value())
 
-        self._settings.setValue("Vds PSU port", _vdsport)
+        self._settings.setValue("Vds physical PSU objects", vds_psu_class_names_and_ports)
         self._settings.setValue("Vds PSU start", self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.value())
         self._settings.setValue("Vgs PSU end", self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.value())
         self._settings.setValue("Vds PSU step", self.PSUdict["Vds PSU"].STEPwidget.widgetSpinbox.value())

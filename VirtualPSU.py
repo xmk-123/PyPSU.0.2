@@ -49,7 +49,6 @@ class VirtualPSU(QWidget):
             self._PCT_DISTRIBUTION = [i * 100 / sum(self.VMAXLIST) for i in self.VMAXLIST]
             self.IRESSETCNTMAX = min([i.IRESSETCNT for i in self.physical_psu_objects_list])  # min current resolution of physical psu s
             self.PMAX = sum([i.PMAX for i in self.physical_psu_objects_list])
-            print("\n  ".join([str(count) + ")" + n.name for count, n in enumerate(self.physical_psu_objects_list)]))
             self.name = "\n".join([str(count + 1) + ")" + n.name for count, n in enumerate(self.physical_psu_objects_list)])
         else:
             self.VMIN = self.physical_psu_objects_list[0].VMIN
@@ -88,7 +87,7 @@ class VirtualPSU(QWidget):
             self.VSTARTwidget.widgetSpinbox.valueChanged.connect(self.Vstartconditions)
             self.VENDwidget.widgetSpinbox.valueChanged.connect(self.Vendconditions)
 
-            self.disablespinbxs(_physical_psu_objects_list[0] == EmptyPSU)
+            self.disablespinbxs(_physical_psu_objects_list[0].name == "Empty PSU")
 
     def Vstartconditions(self, value):
         if value > self.VENDwidget.widgetSpinbox.value():

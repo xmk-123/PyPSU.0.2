@@ -1,4 +1,5 @@
 import powersupply_EMPTY
+import powersupply_TEST
 from powersupply_KORAD import KORAD
 from powersupply_TEST import TestPSU
 from powersupply_EMPTY import EmptyPSU

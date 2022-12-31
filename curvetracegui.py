@@ -47,6 +47,8 @@ class MainWindow(QMainWindow):
 
         fileMenu.addAction(self._testMenuItem)
 
+        self.PsuSetupWin.applysettings()
+
     def buildui(self):
 
         self.window = QWidget()
