@@ -37,12 +37,12 @@ class PsuInitWindow(QMainWindow):
     Vdspolaritychanged = pyqtSignal(bool)
     updateMainWindow = pyqtSignal(bool)
 
-    def __init__(self, PSUdict):
+    def __init__(self, psudict):
         super().__init__()
 
-        self.PSUdict = PSUdict
+        self.PSUdict = psudict
         self._settings = QSettings()
-        #self._settings.clear()
+        # self._settings.clear()
 
         self.window = QWidget()
         self.setWindowTitle(" Setup PSU")
@@ -62,7 +62,8 @@ class PsuInitWindow(QMainWindow):
         self.PSUsListWidget.addItems([v for v in physicalpsusClasses.keys() if v != "Empty PSU"])
         self.PSUsListWidget.setMinimumSize(250, 35)
         self.PSUsListWidget.adjustSize()
-        self.PSUsListWidget.currentItemChanged.connect(lambda p: self.connect_physical_PSU_button.setText("Init\n %s PSU" % p.text()))
+        self.PSUsListWidget.currentItemChanged.connect(
+            lambda p: self.connect_physical_PSU_button.setText("Init\n %s PSU" % p.text()))
         _psusLayout.addWidget(self.PSUsListWidget)
         _1sthorizlayout.addLayout(_psusLayout)
 
@@ -105,7 +106,6 @@ class PsuInitWindow(QMainWindow):
         self.VgsPSUsListWidget.setSelectionMode(QListWidget.MultiSelection)  # to select multiple entries
         self.VgsPSUsListWidget.setMinimumSize(250, 35)
         self.VgsPSUsListWidget.adjustSize()
-        #self.VgsPSUsListWidget.addItems(AvailablePSUs.keys())
         _VgsPSUlayout.addWidget(self.VgsPSUsListWidget)
 
         _VgsPSUlayout.addStretch()
@@ -114,16 +114,16 @@ class PsuInitWindow(QMainWindow):
 
         self._VgsRadioButtonGrp = QButtonGroup()
         _polarityVgsPSUlayout = QVBoxLayout()
-        VgsPolarity = QRadioButton("Source negative")
-        _VgsPSUlayout.addWidget(VgsPolarity)
-        VgsPolarity.setChecked(self.PSUdict["Vgs PSU"].polarity)
-        VgsPolarity.toggled.connect(lambda s: self.Vgspolaritychanged.emit(s))
-        VgsPolarity2 = QRadioButton("Source positive")
-        _VgsPSUlayout.addWidget(VgsPolarity2)
-        VgsPolarity2.setChecked(not self.PSUdict["Vgs PSU"].polarity)
+        vgs_polarity = QRadioButton("Source negative")
+        _VgsPSUlayout.addWidget(vgs_polarity)
+        vgs_polarity.setChecked(self.PSUdict["Vgs PSU"].polarity)
+        vgs_polarity.toggled.connect(lambda s: self.Vgspolaritychanged.emit(s))
+        vgs_polarity2 = QRadioButton("Source positive")
+        _VgsPSUlayout.addWidget(vgs_polarity2)
+        vgs_polarity2.setChecked(not self.PSUdict["Vgs PSU"].polarity)
 
-        self._VgsRadioButtonGrp.addButton(VgsPolarity)
-        self._VgsRadioButtonGrp.addButton(VgsPolarity2)
+        self._VgsRadioButtonGrp.addButton(vgs_polarity)
+        self._VgsRadioButtonGrp.addButton(vgs_polarity2)
 
         _VgsPSUlayout.addLayout(_polarityVgsPSUlayout)
         _3rddhorizlayout.addLayout(_VgsPSUlayout)
@@ -131,20 +131,20 @@ class PsuInitWindow(QMainWindow):
         _VgsPSUlayout.addStretch()
         # *************** add/remove ready PSU button
 
-        addremoveVgsPSUbuttonlayout = QVBoxLayout()
-        addremoveVgsPSUbuttonlayout.addStretch()
+        add_remove_vgs_psu_buttonlayout = QVBoxLayout()
+        add_remove_vgs_psu_buttonlayout.addStretch()
         self.addToVgsPSUbutton = QToolButton()
         self.addToVgsPSUbutton.setArrowType(QtCore.Qt.LeftArrow)
         self.addToVgsPSUbutton.clicked.connect(lambda x: self.add_to_psu_list_widget(self.VgsPSUsListWidget))
-        addremoveVgsPSUbuttonlayout.addWidget(self.addToVgsPSUbutton)
+        add_remove_vgs_psu_buttonlayout.addWidget(self.addToVgsPSUbutton)
 
         self.removefromVgsPSUbutton = QToolButton()
         self.removefromVgsPSUbutton.setArrowType(QtCore.Qt.RightArrow)
         self.removefromVgsPSUbutton.clicked.connect(lambda x: self.remove_from_psu_list_widget(self.VgsPSUsListWidget))
-        addremoveVgsPSUbuttonlayout.addWidget(self.removefromVgsPSUbutton)
-        addremoveVgsPSUbuttonlayout.addStretch()
+        add_remove_vgs_psu_buttonlayout.addWidget(self.removefromVgsPSUbutton)
+        add_remove_vgs_psu_buttonlayout.addStretch()
 
-        _3rddhorizlayout.addLayout(addremoveVgsPSUbuttonlayout)
+        _3rddhorizlayout.addLayout(add_remove_vgs_psu_buttonlayout)
 
 # *************** Available PSUs
 
@@ -158,7 +158,6 @@ class PsuInitWindow(QMainWindow):
         self.AvailablePSUsWidget.setSelectionMode(QListWidget.MultiSelection)  # to select multiple entries
         self.AvailablePSUsWidget.setMinimumSize(250, 35)
         self.AvailablePSUsWidget.adjustSize()
-        #self.AvailablePSUsWidget.addItems(AvailablePSUs.keys())
         _initPSUlayout.addWidget(self.AvailablePSUsWidget)
 
         # items = [self.PSUsListWidget.item(x).text() for x in range(self.PSUsListWidget.count())]
@@ -195,21 +194,21 @@ class PsuInitWindow(QMainWindow):
 
         # *************** add/remove ready PSU button
 
-        addremoveVdsPSUbuttonlayout = QVBoxLayout()
+        add_remove_vds_psu_buttonlayout = QVBoxLayout()
 
-        addremoveVdsPSUbuttonlayout.addStretch()
+        add_remove_vds_psu_buttonlayout.addStretch()
         self.removefromVdsPSUbutton = QToolButton()
         self.removefromVdsPSUbutton.setArrowType(QtCore.Qt.RightArrow)
         self.removefromVdsPSUbutton.clicked.connect(lambda x: self.add_to_psu_list_widget(self.VdsPSUsListWidget))
-        addremoveVdsPSUbuttonlayout.addWidget(self.removefromVdsPSUbutton)
+        add_remove_vds_psu_buttonlayout.addWidget(self.removefromVdsPSUbutton)
 
         self.addToVdsPSUbutton = QToolButton()
         self.addToVdsPSUbutton.setArrowType(QtCore.Qt.LeftArrow)
         self.addToVdsPSUbutton.clicked.connect(lambda x: self.remove_from_psu_list_widget(self.VdsPSUsListWidget))
-        addremoveVdsPSUbuttonlayout.addWidget(self.addToVdsPSUbutton)
+        add_remove_vds_psu_buttonlayout.addWidget(self.addToVdsPSUbutton)
 
-        addremoveVdsPSUbuttonlayout.addStretch()
-        _3rddhorizlayout.addLayout(addremoveVdsPSUbuttonlayout)
+        add_remove_vds_psu_buttonlayout.addStretch()
+        _3rddhorizlayout.addLayout(add_remove_vds_psu_buttonlayout)
 
 # *************** PSUs used by Vds PSU
 
@@ -223,7 +222,6 @@ class PsuInitWindow(QMainWindow):
         self.VdsPSUsListWidget.setSelectionMode(QListWidget.MultiSelection)  # to select multiple entries
         self.VdsPSUsListWidget.setMinimumSize(250, 35)
         self.VdsPSUsListWidget.adjustSize()
-        #self.VdsPSUsListWidget.addItems(AvailablePSUs.keys())
         _VdsPSUlayout.addWidget(self.VdsPSUsListWidget)
 
         _VdsPSUlayout.addStretch()
@@ -231,16 +229,16 @@ class PsuInitWindow(QMainWindow):
 
         self._VdsRadioButtonGrp = QButtonGroup()
         _polarityVdsPSUlayout = QVBoxLayout()
-        VdsPolarity = QRadioButton("Source negative")
-        _polarityVdsPSUlayout.addWidget(VdsPolarity)
-        VdsPolarity.setChecked(self.PSUdict["Vds PSU"].polarity)
-        VdsPolarity.toggled.connect(lambda s: self.Vdspolaritychanged.emit(s))
-        VdsPolarity2 = QRadioButton("Source positive")
-        _polarityVdsPSUlayout.addWidget(VdsPolarity2)
-        VdsPolarity2.setChecked(not self.PSUdict["Vds PSU"].polarity)
+        vds_polarity = QRadioButton("Source negative")
+        _polarityVdsPSUlayout.addWidget(vds_polarity)
+        vds_polarity.setChecked(self.PSUdict["Vds PSU"].polarity)
+        vds_polarity.toggled.connect(lambda s: self.Vdspolaritychanged.emit(s))
+        vds_polarity2 = QRadioButton("Source positive")
+        _polarityVdsPSUlayout.addWidget(vds_polarity2)
+        vds_polarity2.setChecked(not self.PSUdict["Vds PSU"].polarity)
 
-        self._VdsRadioButtonGrp.addButton(VdsPolarity)
-        self._VdsRadioButtonGrp.addButton(VdsPolarity2)
+        self._VdsRadioButtonGrp.addButton(vds_polarity)
+        self._VdsRadioButtonGrp.addButton(vds_polarity2)
 
         _VdsPSUlayout.addLayout(_polarityVdsPSUlayout)
 
@@ -249,7 +247,6 @@ class PsuInitWindow(QMainWindow):
         _3rddhorizlayout.addLayout(_VdsPSUlayout)
 
         _INITlayout.addLayout(_3rddhorizlayout)
-        #self.applysettings()
 
     def add_to_psu_list_widget(self, psulistwidget):
         for i in self.AvailablePSUsWidget.selectedItems():
@@ -285,10 +282,10 @@ class PsuInitWindow(QMainWindow):
     def connect_physical_psu(self, _psu_class, _selected_port):
         try:
             physical_psu_instance = _psu_class(_selected_port)
-            ready_psu_name = str(physical_psu_instance.name + " / " + physical_psu_instance.MODEL + "\n   at port: " + physical_psu_instance.port)
+            ready_psu_name = str(physical_psu_instance.name + " / " + physical_psu_instance.MODEL +
+                                 "\n   at port: " + physical_psu_instance.port)
             physical_psu_instance.name = ready_psu_name
             AvailablePSUs.update({ready_psu_name: physical_psu_instance})
-            physical_psu_instance = None
             usedports.append(_selected_port)
             return ready_psu_name
 
@@ -316,7 +313,6 @@ class PsuInitWindow(QMainWindow):
         _VdsPSUsSelected = [str(self.VdsPSUsListWidget.item(i).text()) for i in range(self.VdsPSUsListWidget.count())]
 
         for names, key in [(_VgsPSUsSelected, "Vgs PSU"), (_VdsPSUsSelected, "Vds PSU")]:
-
             match len(names):
                 case 0:
                     self.PSUdict[key] = VirtualPSU([EmptyPSU()])
@@ -333,29 +329,29 @@ class PsuInitWindow(QMainWindow):
             _vgs_settings = self._settings.value("Vgs physical PSU objects")
             _vds_settings = self._settings.value("Vds physical PSU objects")
 
-            if _vgs_settings is not None and _vds_settings is not None:
-                for psu_class, port in _vgs_settings:
-                    ready_psu_name = self.connect_physical_psu(psu_class, port)
-                    self.VgsPSUsListWidget.addItem(ready_psu_name)
+            for psu, settings in (("Vgs PSU", _vgs_settings), ("Vds PSU", _vds_settings)):
+                if settings is None or settings[0][0] == "Empty PSU":
+                    self.PSUdict[psu] = VirtualPSU([EmptyPSU()])
+                else:
+                    for psu_class, port in _vgs_settings:
+                        ready_psu_name = self.connect_physical_psu(physicalpsusClasses[psu_class], port)
+                        if psu == "Vgs PSU":
+                            self.VgsPSUsListWidget.addItem(ready_psu_name)
+                        else:
+                            self.VdsPSUsListWidget.addItem(ready_psu_name)
+                    self.create_virtual_psus()
 
-                for psu_class, port in _vds_settings:
-                    ready_psu_name = self.connect_physical_psu(psu_class, port)
-                    self.VdsPSUsListWidget.addItem(ready_psu_name)
+                    self.PSUdict["Vgs PSU"].VSTARTwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU start")))
+                    self.PSUdict["Vgs PSU"].VENDwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU end")))
+                    self.PSUdict["Vgs PSU"].STEPwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU step")))
+                    self.PSUdict["Vgs PSU"].IMAXwidget.widgetSpinbox.setValue(int(self._settings.value("Vds PSU Imax")))
 
-                self.PSUdict["Vgs PSU"].VSTARTwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU start")))
-                self.PSUdict["Vgs PSU"].VENDwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU end")))
-                self.PSUdict["Vgs PSU"].STEPwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU step")))
-                self.PSUdict["Vgs PSU"].IMAXwidget.widgetSpinbox.setValue(int(self._settings.value("Vds PSU Imax")))
+                    self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU start")))
+                    self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU end")))
+                    self.PSUdict["Vds PSU"].STEPwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU step")))
+                    self.PSUdict["Vds PSU"].IMAXwidget.widgetSpinbox.setValue(int(self._settings.value("Vds PSU Imax")))
 
-                self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU start")))
-                self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU end")))
-                self.PSUdict["Vds PSU"].STEPwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU step")))
-                self.PSUdict["Vds PSU"].IMAXwidget.widgetSpinbox.setValue(int(self._settings.value("Vds PSU Imax")))
-            else:
-                self.PSUdict["Vgs PSU"] = VirtualPSU([EmptyPSU()])
-                self.PSUdict["Vds PSU"] = VirtualPSU([EmptyPSU()])
-
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError):
             logger.exception("Key error in applysettings method of StartupSettings class")
             self.PSUdict["Vgs PSU"] = VirtualPSU([EmptyPSU()])
             self.PSUdict["Vds PSU"] = VirtualPSU([EmptyPSU()])
@@ -368,8 +364,12 @@ class PsuInitWindow(QMainWindow):
         for psu_object in self.PSUdict["Vgs PSU"].physical_psu_objects_list:
             vgs_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
 
+        print(vgs_psu_class_names_and_ports)
+
         for psu_object in self.PSUdict["Vds PSU"].physical_psu_objects_list:
-            vgs_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
+            vds_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
+
+        print(vds_psu_class_names_and_ports)
 
         self._settings.setValue("Vgs physical PSU objects", vgs_psu_class_names_and_ports)
         self._settings.setValue("Vgs PSU start", self.PSUdict["Vgs PSU"].VSTARTwidget.widgetSpinbox.value())

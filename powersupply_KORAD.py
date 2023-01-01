@@ -1,7 +1,3 @@
-"""
-Python class to control KORAD (RND) power supplies
-"""
-
 # Useful information about KORAD command set: https://sigrok.org/wiki/Korad_KAxxxxP_series
 
 import serial
@@ -164,7 +160,6 @@ class KORAD:
         tmp_reading1 = self.read()
         t0 = time.time()
         while tmp_reading1["voltage"] != voltagetarget:
-            #print(tmp_reading1["voltage"])
             time.sleep(0.1)
             tmp_reading2 = self.read()
             if tmp_reading1["mode"] == "CC":

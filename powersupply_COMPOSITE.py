@@ -55,13 +55,7 @@ logger.addHandler(ch)
 #    .TEST_POLARITY         polarity of connections to the PSU (1 or -1)
 
 
-
 class PSUCOMPOSITE:
-
-    # def __init__(self, *args):
-    #     self.physical_psu_objects_list = []  # list of physical psu s
-    #     for count, p in enumerate(args):
-    #         self.physical_psu_objects_list[count] = p
 
     instancecount = 0
     def __init__(self, psuslist):

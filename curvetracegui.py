@@ -1,8 +1,5 @@
 import sys
-
 from PyQt5.QtCore import pyqtSignal, QThread
-
-from VirtualPSU import VirtualPSU
 from plot import plotwin
 from setup import PsuInitWindow
 from PyQt5 import QtCore
@@ -11,8 +8,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
                              QPushButton, QDoubleSpinBox, QVBoxLayout, QLabel, QSpinBox, QFrame,
                              QSizePolicy, QCheckBox, QMenu, QAction, QMessageBox)
 import traceroutine
-
-from  powersupply_EMPTY import EmptyPSU
+from powersupply_EMPTY import EmptyPSU
+from VirtualPSU import VirtualPSU
 
 
 class MainWindow(QMainWindow):
@@ -32,20 +29,20 @@ class MainWindow(QMainWindow):
         self.buildui()
 
         self.menuBar = self.menuBar()
-        fileMenu = QMenu("&File", self)
-        self.menuBar.addMenu(fileMenu)
+        file_menu = QMenu("&File", self)
+        self.menuBar.addMenu(file_menu)
 
         self._savesettingsMenuItem = QAction(QIcon(), '&Save startup Settings', self)
         self._savesettingsMenuItem.setStatusTip('New document')
         self._savesettingsMenuItem.triggered.connect(self.PsuSetupWin.savesettings)
 
-        fileMenu.addAction(self._savesettingsMenuItem)
+        file_menu.addAction(self._savesettingsMenuItem)
 
         self._testMenuItem = QAction(QIcon(), '&Test  ', self)
         self._testMenuItem.setStatusTip('Test')
         self._testMenuItem.triggered.connect(self.test2)
 
-        fileMenu.addAction(self._testMenuItem)
+        file_menu.addAction(self._testMenuItem)
 
         self.PsuSetupWin.applysettings()
 
@@ -88,7 +85,7 @@ class MainWindow(QMainWindow):
 
         self.psuVgsbutton = PsuButtonBox(self.PSUdict, "Vgs PSU")
         self.layouttopcentermiddleH.addWidget(self.psuVgsbutton)
-        self.psuVgsbutton.PsuButtonPressed.connect(lambda x: self.openpsuwindow(self.PSUdict))
+        self.psuVgsbutton.PsuButtonPressed.connect(lambda x: self.openpsuwindow())
 
         self.layouttopcentermiddleH.addStretch()
 
@@ -104,7 +101,7 @@ class MainWindow(QMainWindow):
 
         self.psuVdsbutton = PsuButtonBox(self.PSUdict, "Vds PSU")
         self.layouttopcentermiddleH.addWidget(self.psuVdsbutton)
-        self.psuVdsbutton.PsuButtonPressed.connect(lambda x: self.openpsuwindow(self.PSUdict))
+        self.psuVdsbutton.PsuButtonPressed.connect(lambda x: self.openpsuwindow())
 
         # top center middle end
         # top center bottom start
@@ -163,12 +160,12 @@ class MainWindow(QMainWindow):
         # bottom start
 
         self.plot_area = plotwin()
-        Separator = QFrame()
-        Separator.setFrameShape(QFrame.HLine)
-        Separator.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
-        Separator.setLineWidth(3)
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        separator.setLineWidth(3)
 
-        self.layoutbottomV.addWidget(Separator)
+        self.layoutbottomV.addWidget(separator)
 
         self.smoothcurveCheckB = QCheckBox("Smooth Curves")
         self.smoothcurveCheckB.toggled.connect(lambda x: self.plot_area.smoothcurves(self.data, x))
@@ -218,16 +215,7 @@ class MainWindow(QMainWindow):
     def savecurves(self):
         print("pressed")
 
-    def openpsuwindow(self, PSUdict):
-        # if self.PsuSetupWin is None:
-        #     # self.PsuSetupWin = setup.PsuInitWindow(PSUdict)
-        #     self.PsuSetupWin = PsuInitWindow(PSUdict)
-
-            # self.PsuSetupWin.setParent(self)
-            # print(self.PsuSetupWin.parent())
-            # self.PsuSetupWin.setWindowModality(QtCore.Qt.WindowModal)
-            # print(self.findChildren(QMainWindow))
-
+    def openpsuwindow(self):
         self.PsuSetupWin.show()
 
     def test(self):
@@ -292,15 +280,15 @@ class MainWindow(QMainWindow):
 class PsuButtonBox(QWidget):
     PsuButtonPressed = pyqtSignal(str)
 
-    def __init__(self, PSUdict, psuKey):
+    def __init__(self, psu_dict, psu_key):
         super().__init__()
-        self.psuKey = psuKey
+        self.psuKey = psu_key
         _layout = QVBoxLayout()
         self.button = QPushButton()
-        self.set(PSUdict[psuKey].polarity)
+        self.set(psu_dict[psu_key].polarity)
         self.button.setMinimumSize(150, 65)
         _layout.addWidget(self.button)
-        self.button.clicked.connect(lambda a: self.PsuButtonPressed.emit(psuKey))
+        self.button.clicked.connect(lambda a: self.PsuButtonPressed.emit(psu_key))
         self.setLayout(_layout)
 
     def set(self, value):

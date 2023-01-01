@@ -1,5 +1,4 @@
 from PyQt5.QtWidgets import QDoubleSpinBox, QHBoxLayout, QLabel, QWidget, QVBoxLayout
-from powersupply_EMPTY import EmptyPSU
 import time
 import numpy as np
 import logging
@@ -24,7 +23,7 @@ class VirtualPSU(QWidget):
             case _ if len(_physical_psu_objects_list) > 1:
                 self._multiple_physical_PSUs = True
             case _:
-                raise TypeError("Missing physical PSU argument in VirtualPSU class creation")
+                raise TypeError(" physical PSU argument in VirtualPSU object creation")
 
         if self._multiple_physical_PSUs:
             self.VMIN = sum([i.VMIN for i in self.physical_psu_objects_list])
@@ -129,7 +128,7 @@ class VirtualPSU(QWidget):
     def setcurrent(self, _current):
         if self._multiple_physical_PSUs:
             _current = round(_current, self.IRESSETCNTMAX)
-            if (_current <= self.IMAX) and (_current >= self.IMIN):
+            if (_current <= self.IMAX):
                 for p in self.physical_psu_objects_list:
                     p.setcurrent(_current)
                 return 0
