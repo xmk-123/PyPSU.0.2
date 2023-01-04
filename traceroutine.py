@@ -24,15 +24,15 @@ class worker(QObject):
 
         _VdsPSU.setvoltage(0)
         _VdsPSU.setcurrent(0)
-        _VdsPSU.turnon()
+        _VdsPSU.enableoutput(True)
         _Vds = _VdsPSU.VSTARTwidget.widgetSpinbox.value()
 
         if _VgsPSU.name != "Empty PSU":
             _VgsPSU.setvoltage(0)
             _VgsPSU.setcurrent(0)
-            _VgsPSU.turnon()
+            _VgsPSU.enableoutput(True)
         _Vgs = _VgsPSU.VSTARTwidget.widgetSpinbox.value()
-        _readVds = _VdsPSU.read(3)
+        _readVds = _VdsPSU.getreadings(3)
 
         _i = 0
         while _Vgs <= _VgsEND:
@@ -48,7 +48,7 @@ class worker(QObject):
                 print("Vds PSU current set at : " + str(min(_IdsMAX, self._MaxP / _Vds)))
                 print(self._MaxP)
                 _VdsPSU.setvoltage(_Vds)
-                _readVds = _VdsPSU.read(3)
+                _readVds = _VdsPSU.getreadings(3)
                 _data[_i][1].append(_VdsPSU.polarity * _readVds["voltage"])
                 _data[_i][2].append(_VdsPSU.polarity * _readVds["current"])
                 _data[_i][3].append(_VdsPSU.polarity * _readVds["mode"])
@@ -61,11 +61,11 @@ class worker(QObject):
             _i += 1
 
         _data = []
-        _VdsPSU.turnoff()
+        _VdsPSU.enableoutput(False)
         _VdsPSU.setvoltage(0)
         _VdsPSU.setcurrent(0)
         if _VgsPSU.name != "Empty PSU":
-            _VgsPSU.turnoff()
+            _VgsPSU.enableoutput(False)
             _VgsPSU.setvoltage(0)
             _VgsPSU.setcurrent(0)
 

@@ -50,7 +50,7 @@ class KORAD:
         if self._debug:
             logger.info('KORAD <- %s' % self._Serial)
 
-        time.sleep(0.2)  # wait a bit unit the port is really ready
+        time.sleep(0.2)
 
         self._Serial.flushInput()
         self._Serial.flushOutput()
@@ -58,7 +58,6 @@ class KORAD:
         try:
             typestring = self._query('*IDN?', True).split(" ")
 
-            # parse typestring:
             if len(typestring) < 2:
                 raise RuntimeError('No KORAD power supply connected to ' + port)
             if not (typestring[0].upper() in ['KORAD', 'RND', 'VELLEMAN', 'TENMA']):
@@ -101,12 +100,65 @@ class KORAD:
 
         self._setmaxslope(99)
 
+    def _setmaxslope(self, slope):
+        if self._query("VSLOPE?") != str(slope):
+            self._query("VSLOPE:" + str(slope))
+        if self._query("ISLOPE?") != str(slope):
+            self._query("ISLOPE:" + str(slope))
+
+    def enableoutput(self, enable: bool):
+        state = int(enable)
+
+        if self.MODEL == "KWR103":
+            self._query('OUT:%d' % enable)
+        else:
+            self._query('OUT%d' % enable)
+
+    def setvoltage(self, targetvoltage):
+        targetvoltage = round(targetvoltage, self.VRESSETCNT)
+        if self.VMIN <= targetvoltage <= self.VMAX:
+            if self.MODEL == "KWR103":
+                self._query('VSET:' + str(targetvoltage))
+            else:
+                self._query('VSET1:' + str(targetvoltage))
+        else:
+            logger.warning("voltage setting out of bounds "
+                           + str(self.VMAX) + " max / " + str(self.VMIN) + " min ")
+            return 1
+
+        tmp_reading1 = self.getreadings()
+        t0 = time.time()
+        while tmp_reading1["voltage"] != targetvoltage:
+            time.sleep(0.1)
+            tmp_reading2 = self.getreadings()
+            if tmp_reading1["mode"] == "CC":
+                if tmp_reading1["voltage"] < tmp_reading2["voltage"]:
+                    tmp_reading1 = tmp_reading2
+                    t0 = time.time()
+                    time.sleep(0.1)
+                else:
+                    print("CC\n")
+                    break
+            if time.time() - t0 > self.MAXSETTLETIME:
+                # getting consistent readings is taking too long; give up
+                logger.warning(': Could not set ' + str(targetvoltage) + ' volts after ' + str(
+                    self.MAXSETTLETIME) + ' s ')
+                break
+            tmp_reading1 = tmp_reading2
+
+    def setcurrent(self, current):
+        current = round(current, self.IRESSETCNT)
+        if 0 <= current <= self.IMAX:
+            if self.MODEL == "KWR103":
+                self._query('ISET:' + str(current))
+            else:
+                self._query('ISET1:' + str(current))
+        else:
+            logger.warning("current setting out of bounds "
+                           + str(self.IMAX) + " max / ")
+            return 1
+
     def _query(self, cmd, answer=False):
-        """
-        tx/rx to/from PS
-        """
-        # just in case, make sure the buffers are empty before doing anything:
-        # (it seems some KORADs tend to have issues with stuff dangling in their serial buffers)
         self._Serial.reset_output_buffer()
         self._Serial.reset_input_buffer()
         time.sleep(0.03)
@@ -120,81 +172,7 @@ class KORAD:
             ans = self._Serial.readline().decode('utf-8').rstrip("\n\r")
             return ans
 
-    def _setmaxslope(self, slope):
-        if self._query("VSLOPE?") != str(slope):
-            self._query("VSLOPE:" + str(slope))
-        if self._query("ISLOPE?") != str(slope):
-            self._query("ISLOPE:" + str(slope))
-
-    def _output(self, state):
-        """
-        enable/disable the PS output
-        """
-        state = int(bool(state))
-
-        if self.MODEL == "KWR103":
-            self._query('OUT:%d' % state)
-        else:
-            self._query('OUT%d' % state)
-
-    def turnoff(self):
-        self._output(False)
-        self.setvoltage(self.VMIN)
-        self.setcurrent(0.0)
-
-    def turnon(self):
-        self._output(True)
-
-    def setvoltage(self, voltagetarget):
-        voltagetarget = round(voltagetarget, self.VRESSETCNT)
-        if (voltagetarget <= self.VMAX) and (voltagetarget >= self.VMIN):
-            if self.MODEL == "KWR103":
-                self._query('VSET:' + str(voltagetarget))
-            else:
-                self._query('VSET1:' + str(voltagetarget))
-        else:
-            logger.warning("voltage setting out of bounds "
-                           + str(self.VMAX) + " max / " + str(self.VMIN) + " min ")
-            return 1
-
-        tmp_reading1 = self.read()
-        t0 = time.time()
-        while tmp_reading1["voltage"] != voltagetarget:
-            time.sleep(0.1)
-            tmp_reading2 = self.read()
-            if tmp_reading1["mode"] == "CC":
-                if tmp_reading1["voltage"] < tmp_reading2["voltage"]:
-                    tmp_reading1 = tmp_reading2
-                    t0 = time.time()
-                    time.sleep(0.1)
-                else:
-                    print("CC\n")
-                    break
-            if time.time() - t0 > self.MAXSETTLETIME:
-                # getting consistent readings is taking too long; give up
-                logger.warning(': Could not set ' + str(voltagetarget) + ' volts after ' + str(
-                    self.MAXSETTLETIME) + ' s ')
-                break
-            tmp_reading1 = tmp_reading2
-
-    def setcurrent(self, current):
-        current = round(current, self.IRESSETCNT)
-        if current <= self.IMAX:
-            if current < 0.0:
-                current = 0.0
-            if self.MODEL == "KWR103":
-                self._query('ISET:' + str(current))
-            else:
-                self._query('ISET1:' + str(current))
-        else:
-            logger.warning("current setting out of bounds "
-                           + str(self.IMAX) + " max / ")
-            return 1
-
     def _reading(self):
-        """
-        read applied output voltage and current and if PS is in "CV" or "CC" mode
-        """
         if self.MODEL == "KWR103":
             vq = 'VOUT?'
             iq = 'IOUT?'
@@ -212,7 +190,7 @@ class KORAD:
         return v, i, s
 
     # get n consecutive readings within tolerance
-    def read(self, n=0):
+    def getreadings(self, n=0):
         if n < 0:
             raise RuntimeError('Number of consistent readings in a row must be a positive or 0 for no check')
         keys = ("voltage", "current", "mode")
@@ -232,8 +210,10 @@ class KORAD:
                 time.sleep(self.READIDLETIME)
 
             if time.time() - t0 > self.MAXSETTLETIME:
-                # getting consistent readings is taking too long; give up
                 logger.warning(': Could not get ' + str(n) + ' consistent readings in a row after ' + str(
                     self.MAXSETTLETIME) + ' s! DUT drifting? Noise?')
                 break
         return dict(zip(keys, (v, i, mode)))
+
+    def __del__(self):
+        self._Serial.close()

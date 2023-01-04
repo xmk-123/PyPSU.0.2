@@ -228,7 +228,6 @@ class MainWindow(QMainWindow):
             print("is open psu setup win")
 
     def starttracing(self):
-        print()
         if self.PSUdict["Vds PSU"].name != "Empty PSU":
             self.freeze(True)
             self.plot_area.reset()

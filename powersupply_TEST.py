@@ -21,6 +21,8 @@ class TestPSU:
         self.current = 0
         self.polarity = True
 
+        self._Serial = srl()
+
     def turnoff(self):
         pass
 
@@ -38,3 +40,15 @@ class TestPSU:
         if self.current > self.IMAXwidget.widgetSpinbox.value():
             return {"voltage": self.voltage, "current": self.IMAXwidget.widgetSpinbox.value(), "mode": "CC"}
         return {"voltage": self.voltage, "current": self.current, "mode": "CV"}
+
+    def __del__(self):
+        print("Object gets destroyed");
+        self._Serial.close()
+
+
+class srl:
+    def __init__(self):
+        pass
+
+    def close(self):
+        pass

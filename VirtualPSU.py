@@ -153,40 +153,25 @@ class VirtualPSU(QWidget):
         if self._multiple_physical_PSUs:
             if n < 1:
                 raise RuntimeError('Number of consistent readings in a row must be larger than 1!')
-
-            t0 = time.time()
-            match = 0
-            v = 0
             vsum = 0
-            i = 0
-            isum = 0
+            i = []
             limt = []
 
-            while match < n:
-                for p in self.physical_psu_objects_list:
-                    vv, ii, ll = p._reading()
-                    vsum += vv
-                    isum += ii
-                    limt.append(ll)
-                if (vsum == v) and (isum == i):
-                    match += 1
-                else:
-                    v = vsum
-                    i = isum
-                    time.sleep(self.READIDLETIME)
-
-                if time.time() - t0 > self.MAXSETTLETIME:
-                    # getting consistent readings is taking too long; give up
-                    logger.info(self.__name__ + ': Could not get ' + str(n) + ' consistent readings in a row after ' + str(
-                        self.MAXSETTLETIME) + ' s! DUT drifting? Noise?')
-                    break
-            if n > 1:
-                v = np.mean(v)
-                i = np.mean(i)
+            for p in self.physical_psu_objects_list:
+                vv, ii, ll = p.getreadings()
+                vsum += vv
+                i.append(ii)
+                limt.append(ll)
+            if (vsum == v) and (isum == i):
+                match += 1
+            else:
+                v = vsum
+                i = isum
+                time.sleep(self.READIDLETIME)
 
             return v, i, limt
         else:
-            return self.physical_psu_objects_list[0].read(n)
+            return self.physical_psu_objects_list[0].getreadings(n)
 
 
 class ParameterWidget(QWidget):

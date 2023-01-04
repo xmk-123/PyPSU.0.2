@@ -42,7 +42,7 @@ class PsuInitWindow(QMainWindow):
 
         self.PSUdict = psudict
         self._settings = QSettings()
-        # self._settings.clear()
+        #self._settings.clear()
 
         self.window = QWidget()
         self.setWindowTitle(" Setup PSU")
@@ -287,6 +287,7 @@ class PsuInitWindow(QMainWindow):
             physical_psu_instance.name = ready_psu_name
             AvailablePSUs.update({ready_psu_name: physical_psu_instance})
             usedports.append(_selected_port)
+            self.refreshports()
             return ready_psu_name
 
         except SerialException as e:
@@ -329,11 +330,14 @@ class PsuInitWindow(QMainWindow):
             _vgs_settings = self._settings.value("Vgs physical PSU objects")
             _vds_settings = self._settings.value("Vds physical PSU objects")
 
+            for key in self._settings.allKeys():
+                print(key, self._settings.value(key))
+
             for psu, settings in (("Vgs PSU", _vgs_settings), ("Vds PSU", _vds_settings)):
                 if settings is None or settings[0][0] == "Empty PSU":
                     self.PSUdict[psu] = VirtualPSU([EmptyPSU()])
                 else:
-                    for psu_class, port in _vgs_settings:
+                    for psu_class, port in settings:
                         ready_psu_name = self.connect_physical_psu(physicalpsusClasses[psu_class], port)
                         if psu == "Vgs PSU":
                             self.VgsPSUsListWidget.addItem(ready_psu_name)
@@ -342,9 +346,9 @@ class PsuInitWindow(QMainWindow):
                     self.create_virtual_psus()
 
                     self.PSUdict["Vgs PSU"].VSTARTwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU start")))
-                    self.PSUdict["Vgs PSU"].VENDwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU end")))
+                    self.PSUdict["Vgs PSU"].VENDwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU end")))
                     self.PSUdict["Vgs PSU"].STEPwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU step")))
-                    self.PSUdict["Vgs PSU"].IMAXwidget.widgetSpinbox.setValue(int(self._settings.value("Vds PSU Imax")))
+                    self.PSUdict["Vgs PSU"].IMAXwidget.widgetSpinbox.setValue(int(self._settings.value("Vgs PSU Imax")))
 
                     self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU start")))
                     self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.setValue(float(self._settings.value("Vds PSU end")))
@@ -364,11 +368,10 @@ class PsuInitWindow(QMainWindow):
         for psu_object in self.PSUdict["Vgs PSU"].physical_psu_objects_list:
             vgs_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
 
-        print(vgs_psu_class_names_and_ports)
-
         for psu_object in self.PSUdict["Vds PSU"].physical_psu_objects_list:
             vds_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
 
+        print(vgs_psu_class_names_and_ports)
         print(vds_psu_class_names_and_ports)
 
         self._settings.setValue("Vgs physical PSU objects", vgs_psu_class_names_and_ports)
