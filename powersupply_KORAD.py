@@ -46,8 +46,8 @@ class KORAD:
         try:
             self._Serial = serial.Serial(self.port, baudrate=baud, bytesize=8, parity='N', stopbits=1,
                                          timeout=KORAD.KORAD_TIMEOUT, exclusive=True)
-        except serial.SerialException:
-            raise
+        except serial.SerialException as e:
+            raise e
 
         if self._debug:
             logger.info('KORAD <- %s' % self._Serial)
@@ -219,6 +219,6 @@ class KORAD:
     def __del__(self):
         try:
             self._Serial.close()
-        except Exception as e:
-            logger.info(e)
+        except AttributeError:
+            pass
 

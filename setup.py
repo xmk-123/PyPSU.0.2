@@ -278,13 +278,12 @@ class PsuInitWindow(QMainWindow):
             return ready_psu_name
 
         except IOError as e:
-            logger.warning("error\n %s" % e)
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setText(str(e))
             msg.setStandardButtons(QMessageBox.Close)
             msg.exec()
-            logger.warning(e)
+            # logger.warning(e)
             raise e
 
     def disconnect_physical_psu(self):
@@ -333,9 +332,8 @@ class PsuInitWindow(QMainWindow):
                                 self.VgsPSUsListWidget.addItem(ready_psu_name)
                             else:
                                 self.VdsPSUsListWidget.addItem(ready_psu_name)
-                        except:
+                        except IOError as e:
                             self.PSUdict[psu] = VirtualPSU([EmptyPSU()])
-                            print("pppppppppppppppppppppppppppppp")
                     self.create_virtual_psus()
 
             self.PSUdict["Vgs PSU"].VSTARTwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU start")))
@@ -351,7 +349,7 @@ class PsuInitWindow(QMainWindow):
             self.PSUdict["DUT settings"].DUTMaxPSpinbox.setValue(int(self._settings.value("Pmax")))
 
         except(KeyError, TypeError):
-            logger.exception("Key error in applysettings method of StartupSettings class")
+            # logger.exception("Key error in applysettings method of StartupSettings class")
             self.PSUdict["Vgs PSU"] = VirtualPSU([EmptyPSU()])
             self.PSUdict["Vds PSU"] = VirtualPSU([EmptyPSU()])
 

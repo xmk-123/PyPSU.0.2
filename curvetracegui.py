@@ -99,20 +99,16 @@ class MainWindow(QMainWindow):
         self.psuVdsbutton = PsuButtonBox(self.PSUdict, "Vds PSU")
         self.layouttopcentermiddleH.addWidget(self.psuVdsbutton)
         self.psuVdsbutton.PsuButtonPressed.connect(lambda x: self.openpsuwindow())
-
         # top center middle end
-        # top center bottom start
 
+        # top center bottom start
         self.dut_widgets = DutSet()
         self.layouttopcenterbottomH.addWidget(self.dut_widgets)
         self.PSUdict["DUT settings"] = self.dut_widgets
-
         # top center bottom end
-
     # top center pane end
 
     # bottom start
-
         self.plot_area = PlotWin()
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
@@ -137,7 +133,6 @@ class MainWindow(QMainWindow):
         self.savecurvesB.setMaximumSize(130, 50)
         self.savecurvesB.pressed.connect(self.savecurves)
         self.layoutbottomH.addWidget(self.savecurvesB)
-
     # bottom end
 
         self.layouttopH.addWidget(self.PSUdict["Vgs PSU"].PSUwindow)
@@ -217,7 +212,7 @@ class MainWindow(QMainWindow):
         self.PSUdict["Vgs PSU"].disablespinbxs(freeze)
         self.PSUdict["Vds PSU"].disablespinbxs(freeze)
         self.dut_widgets.IdleSpinbox.setDisabled(freeze)
-        self.dut_widgets.PheatLabel.setDisabled(freeze)
+        self.dut_widgets.TempLabel.setDisabled(freeze)
         self.dut_widgets.DUTMaxPLabel.setDisabled(freeze)
         self.smoothcurveCheckB.setDisabled(freeze)
         self.plotlimitsCheckB.setDisabled(freeze)
@@ -263,35 +258,36 @@ class DutSet(QWidget):
 
         self.dutset_layout = QHBoxLayout()
         self.setLayout(self.dutset_layout)
-        self.IdleLabel = QLabel("Idle sec")
-        self.IdleLabel.setMinimumSize(110, 50)
-        self.dutset_layout.addWidget(self.IdleLabel)
 
-        # self.layout.addStretch()
-        self.IdleSpinbox = QDoubleSpinBox()
-        self.IdleSpinbox.setMinimumSize(130, 50)
-        self.IdleSpinbox.setMaximumSize(130, 50)
-        self.IdleSpinbox.setMinimum(0)
-        self.IdleSpinbox.setMaximum(10)
-        self.IdleSpinbox.setSingleStep(0.01)
-
-        self.dutset_layout.addWidget(self.IdleSpinbox)
-
-        # self.dutset_layout.addStretch()
-
-        self.PheatLabel = QLabel("Preheat sec")
-        self.PheatLabel.setMinimumSize(160, 50)
-        self.dutset_layout.addWidget(self.PheatLabel)
-
-        # self.layout.addStretch()
-        self.PheatSpinbox = QSpinBox()
-        self.PheatSpinbox.setMinimumSize(130, 50)
-        self.PheatSpinbox.setMaximumSize(130, 50)
-        self.PheatSpinbox.setMinimum(0)
-        self.PheatSpinbox.setMaximum(100)
-        self.dutset_layout.addWidget(self.PheatSpinbox)
+        # self.IdleLabel = QLabel("Idle sec")
+        # self.IdleLabel.setMinimumSize(110, 50)
+        # self.dutset_layout.addWidget(self.IdleLabel)
+        #
+        # # self.layout.addStretch()
+        # self.IdleSpinbox = QDoubleSpinBox()
+        # self.IdleSpinbox.setMinimumSize(130, 50)
+        # self.IdleSpinbox.setMaximumSize(130, 50)
+        # self.IdleSpinbox.setMinimum(0)
+        # self.IdleSpinbox.setMaximum(10)
+        # self.IdleSpinbox.setSingleStep(0.01)
+        #
+        # self.dutset_layout.addWidget(self.IdleSpinbox)
 
         # self.dutset_layout.addStretch()
+
+        self.TempLabel = QLabel("Temp")
+        self.TempLabel.setMinimumSize(80, 50)
+        self.dutset_layout.addWidget(self.TempLabel)
+
+        # self.layout.addStretch()
+        self.TempSpinbox = QSpinBox()
+        self.TempSpinbox.setMinimumSize(130, 50)
+        self.TempSpinbox.setMaximumSize(130, 50)
+        self.TempSpinbox.setMinimum(0)
+        self.TempSpinbox.setMaximum(100)
+        self.dutset_layout.addWidget(self.TempSpinbox)
+
+        self.dutset_layout.addStretch()
 
         self.DUTMaxPLabel = QLabel("Max Power")
         self.DUTMaxPLabel.setMinimumSize(150, 50)
