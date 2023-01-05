@@ -1,6 +1,5 @@
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtCore
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from scipy.interpolate import make_interp_spline
 import copy
@@ -63,4 +62,3 @@ class PlotWin(QWidget):
             self.plotdata(sdata)
         else:
             self.plotdata(data)
-

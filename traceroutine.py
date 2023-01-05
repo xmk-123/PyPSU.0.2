@@ -6,9 +6,9 @@ class Worker(QObject):
     plotdata = pyqtSignal(object)
     newcurve = pyqtSignal(float)
 
-    def __init__(self, _PSUdict):
+    def __init__(self, _psudict):
         super().__init__()
-        self._PSUdict = _PSUdict
+        self._PSUdict = _psudict
         self._MaxP = self._PSUdict["DUT settings"].DUTMaxPSpinbox.value()
 
     def traceroutine(self):

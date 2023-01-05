@@ -1,6 +1,4 @@
 from PyQt5.QtWidgets import QDoubleSpinBox, QHBoxLayout, QLabel, QWidget, QVBoxLayout
-import time
-import numpy as np
 import logging
 
 logger = logging.getLogger(__name__)
@@ -192,6 +190,3 @@ class ParameterWidget(QWidget):
         self._PSUlayout2.addWidget(self.widgetSpinbox)
 
         self.setLayout(self._PSUlayout2)
-
-
-

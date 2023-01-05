@@ -332,7 +332,7 @@ class PsuInitWindow(QMainWindow):
                                 self.VgsPSUsListWidget.addItem(ready_psu_name)
                             else:
                                 self.VdsPSUsListWidget.addItem(ready_psu_name)
-                        except IOError as e:
+                        except IOError:
                             self.PSUdict[psu] = VirtualPSU([EmptyPSU()])
                     self.create_virtual_psus()
 

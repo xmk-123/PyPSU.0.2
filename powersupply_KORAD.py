@@ -4,8 +4,6 @@ import serial
 import time
 import logging
 
-from serial import SerialException
-
 # set up logger:
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -221,4 +219,3 @@ class KORAD:
             self._Serial.close()
         except AttributeError:
             pass
-

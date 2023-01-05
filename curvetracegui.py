@@ -5,7 +5,7 @@ from setup import PsuInitWindow
 from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
-                             QPushButton, QDoubleSpinBox, QVBoxLayout, QLabel, QSpinBox, QFrame,
+                             QPushButton, QVBoxLayout, QLabel, QSpinBox, QFrame,
                              QSizePolicy, QCheckBox, QMenu, QAction, QMessageBox)
 import traceroutine
 from powersupply_EMPTY import EmptyPSU
@@ -15,7 +15,7 @@ from VirtualPSU import VirtualPSU
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        #self.showMaximized()
+        # self.showMaximized()
         self.PSUdict = {"Vgs PSU": VirtualPSU([EmptyPSU()]),
                         "Vds PSU": VirtualPSU([EmptyPSU()])}
         self.PsuSetupWin = PsuInitWindow(self.PSUdict)
