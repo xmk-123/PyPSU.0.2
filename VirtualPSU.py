@@ -28,6 +28,7 @@ class VirtualPSU(QWidget):
         if self._multiple_physical_PSUs:
             self.VMIN = sum([i.VMIN for i in self.physical_psu_objects_list])
             self.VMAX = sum([i.VMAX for i in self.physical_psu_objects_list])
+            self.VOFFSETMAX = sum([i.VOFFSETMAX for i in self.physical_psu_objects_list])
             self.VRESSET = min([i.VRESSET for i in self.physical_psu_objects_list])
             if self.VRESSET < 1:
                 self.VRESSETCNT = len(str(self.VRESSET).split(".")[1])
@@ -35,6 +36,7 @@ class VirtualPSU(QWidget):
                 self.VRESSETCNT = 0
 
             self.IMAX = min([i.IMAX for i in self.physical_psu_objects_list])
+            self.IOFFSETMAX = max([i.IMAXwidget for i in self.physical_psu_objects_list])
             self.IRESSET = max([i.IRESSET for i in self.physical_psu_objects_list])
             if self.IRESSET < 1:
                 self.IRESSETCNT = len(str(self.IRESSET).split(".")[1])
@@ -128,7 +130,7 @@ class VirtualPSU(QWidget):
     def setcurrent(self, _current):
         if self._multiple_physical_PSUs:
             _current = round(_current, self.IRESSETCNTMAX)
-            if (_current <= self.IMAX):
+            if _current <= self.IMAX:
                 for p in self.physical_psu_objects_list:
                     p.setcurrent(_current)
                 return 0
@@ -139,15 +141,12 @@ class VirtualPSU(QWidget):
         else:
             self.physical_psu_objects_list[0].setcurrent(_current)
 
-    def turnoff(self):
+    def enableoutput(self, setting: bool):
         for p in self.physical_psu_objects_list:
-            p.output(False)
-            p.voltage(self.VMIN)
-            p.current(0.0)
-
-    def turnon(self):
-        for p in self.physical_psu_objects_list:
-            p.output(True)
+            p.output(setting)
+            if not set:
+                p.voltage(self.VMIN)
+                p.current(0.0)
 
     def read(self, n=1):
         if self._multiple_physical_PSUs:
@@ -158,20 +157,20 @@ class VirtualPSU(QWidget):
             limt = []
 
             for p in self.physical_psu_objects_list:
-                vv, ii, ll = p.getreadings()
+                vv, ii, ll = p.physical_psu_readings()
                 vsum += vv
                 i.append(ii)
                 limt.append(ll)
-            if (vsum == v) and (isum == i):
-                match += 1
+            if "CC" in limt:
+                ll = "CC"
             else:
-                v = vsum
-                i = isum
-                time.sleep(self.READIDLETIME)
-
-            return v, i, limt
+                ll = "CV"
+            if not all(current - self.IOFFSETMAX <= i[0] <= current + self.IOFFSETMAX for current in i):
+                logger.error("Unequal current readings between chained PSUs")
+            ii = i[0]
+            return vsum, ii, ll
         else:
-            return self.physical_psu_objects_list[0].getreadings(n)
+            return self.physical_psu_objects_list[0].physical_psu_readings(n)
 
 
 class ParameterWidget(QWidget):

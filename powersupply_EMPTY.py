@@ -22,3 +22,5 @@ class EmptyPSU:
 
     def setcurrent(_Vgs, x=None):
         pass
+    def output(self, enable: bool):
+        pass

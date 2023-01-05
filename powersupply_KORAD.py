@@ -4,6 +4,8 @@ import serial
 import time
 import logging
 
+from serial import SerialException
+
 # set up logger:
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -87,10 +89,11 @@ class KORAD:
             self.READIDLETIME = self.MAXSETTLETIME / 50
             self.polarity = True
 
-            logger.info('VRESSETCNTMAX = ' + str(self.VRESSETCNT) + '\n' +
-                        'self.VMIN = ' + str(self.VMIN) + '\n' +
+            logger.info('\n' +
+                        'VRESSETCNTMAX = ' + str(self.VRESSETCNT) + '\n' +
+                        'VMIN = ' + str(self.VMIN) + '\n' +
                         'VMAX = ' + str(self.VMAX) + '\n' +
-                        'IMAXwidget = ' + str(self.IMAX) + '\n' +
+                        'IMAX = ' + str(self.IMAX) + '\n' +
                         'PMAX = ' + str(self.PMAX) + '\n')
 
         except serial.SerialTimeoutException:
@@ -106,13 +109,11 @@ class KORAD:
         if self._query("ISLOPE?") != str(slope):
             self._query("ISLOPE:" + str(slope))
 
-    def enableoutput(self, enable: bool):
-        state = int(enable)
-
+    def output(self, enable: bool):
         if self.MODEL == "KWR103":
-            self._query('OUT:%d' % enable)
+            self._query('OUT:%d' % int(enable))
         else:
-            self._query('OUT%d' % enable)
+            self._query('OUT%d' % int(enable))
 
     def setvoltage(self, targetvoltage):
         targetvoltage = round(targetvoltage, self.VRESSETCNT)
@@ -126,11 +127,11 @@ class KORAD:
                            + str(self.VMAX) + " max / " + str(self.VMIN) + " min ")
             return 1
 
-        tmp_reading1 = self.getreadings()
+        tmp_reading1 = self.physical_psu_readings()
         t0 = time.time()
         while tmp_reading1["voltage"] != targetvoltage:
             time.sleep(0.1)
-            tmp_reading2 = self.getreadings()
+            tmp_reading2 = self.physical_psu_readings()
             if tmp_reading1["mode"] == "CC":
                 if tmp_reading1["voltage"] < tmp_reading2["voltage"]:
                     tmp_reading1 = tmp_reading2
@@ -190,7 +191,7 @@ class KORAD:
         return v, i, s
 
     # get n consecutive readings within tolerance
-    def getreadings(self, n=0):
+    def physical_psu_readings(self, n=0):
         if n < 0:
             raise RuntimeError('Number of consistent readings in a row must be a positive or 0 for no check')
         keys = ("voltage", "current", "mode")
@@ -216,4 +217,8 @@ class KORAD:
         return dict(zip(keys, (v, i, mode)))
 
     def __del__(self):
-        self._Serial.close()
+        try:
+            self._Serial.close()
+        except Exception as e:
+            logger.info(e)
+

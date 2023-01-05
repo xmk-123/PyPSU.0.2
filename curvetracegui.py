@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtCore import pyqtSignal, QThread
-from plot import plotwin
+from plot import PlotWin
 from setup import PsuInitWindow
 from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon
@@ -15,15 +15,15 @@ from VirtualPSU import VirtualPSU
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        #self.showMaximized()
         self.PSUdict = {"Vgs PSU": VirtualPSU([EmptyPSU()]),
                         "Vds PSU": VirtualPSU([EmptyPSU()])}
-
         self.PsuSetupWin = PsuInitWindow(self.PSUdict)
         self.PsuSetupWin.Vgspolaritychanged.connect(lambda s: self.psuVgsbutton.set(s))
         self.PsuSetupWin.Vdspolaritychanged.connect(lambda s: self.psuVdsbutton.set(s))
         self.PsuSetupWin.updateMainWindow.connect(self.buildui)
 
-        self.dutTestParameters = {"Idle sec": 0, "Preheat sec": 0, "Max Power": 0}
+        # self.dutTestParameters = {"Idle sec": 0, "Preheat sec": 0, "Max Power": 0}
         self.data = None
 
         self.buildui()
@@ -57,19 +57,16 @@ class MainWindow(QMainWindow):
         self.layouttopH = QHBoxLayout()
         self.layoutbottomV = QVBoxLayout()
 
-        self.layouttopleftV = QVBoxLayout()
-
         self.layouttopcenterV = QVBoxLayout()
 
         self.layouttopcentertopH = QHBoxLayout()
         self.layouttopcentermiddleH = QHBoxLayout()
         self.layouttopcenterbottomH = QHBoxLayout()
 
-        self.layouttoprightV = QVBoxLayout()
-
         self.layoutbottomH = QHBoxLayout()
 
-        # top center pane start
+    # top center pane start
+
         self.PsuVgsLabel = QLabel(self.PSUdict["Vgs PSU"].name)
         self.PsuVgsLabel.setMinimumSize(110, 50)
         self.layouttopcentertopH.addWidget(self.PsuVgsLabel)
@@ -105,61 +102,18 @@ class MainWindow(QMainWindow):
 
         # top center middle end
         # top center bottom start
-        self.IdleLabel = QLabel("Idle sec")
-        self.IdleLabel.setMinimumSize(110, 50)
-        self.layouttopcenterbottomH.addWidget(self.IdleLabel)
 
-        # self.layout.addStretch()
-        self.IdleSpinbox = QDoubleSpinBox()
-        self.IdleSpinbox.setMinimumSize(130, 50)
-        self.IdleSpinbox.setMaximumSize(130, 50)
-        self.IdleSpinbox.setMinimum(0)
-        self.IdleSpinbox.setMaximum(10)
-        self.IdleSpinbox.setSingleStep(0.01)
+        self.dut_widgets = DutSet()
+        self.layouttopcenterbottomH.addWidget(self.dut_widgets)
+        self.PSUdict["DUT settings"] = self.dut_widgets
 
-        self.layouttopcenterbottomH.addWidget(self.IdleSpinbox)
-
-        self.layouttopcenterbottomH.addStretch()
-
-        self.PheatLabel = QLabel("Preheat sec")
-        self.PheatLabel.setMinimumSize(160, 50)
-        self.layouttopcenterbottomH.addWidget(self.PheatLabel)
-
-        # self.layout.addStretch()
-        self.PheatSpinbox = QSpinBox()
-        self.PheatSpinbox.setMinimumSize(130, 50)
-        self.PheatSpinbox.setMaximumSize(130, 50)
-        self.PheatSpinbox.setMinimum(0)
-        self.PheatSpinbox.setMaximum(100)
-        self.layouttopcenterbottomH.addWidget(self.PheatSpinbox)
-
-        self.layouttopcenterbottomH.addStretch()
-
-        self.MaxpwrLabel = QLabel("Max Power")
-        self.MaxpwrLabel.setMinimumSize(150, 50)
-        self.layouttopcenterbottomH.addWidget(self.MaxpwrLabel)
-
-        # self.layout.addStretch()
-        self.MaxpwrSpinbox = QSpinBox()
-        self.MaxpwrSpinbox.setMinimumSize(130, 50)
-        self.MaxpwrSpinbox.setMaximumSize(130, 50)
-        self.MaxpwrSpinbox.setMinimum(0)
-        self.MaxpwrSpinbox.setMaximum(300)
-        self.layouttopcenterbottomH.addWidget(self.MaxpwrSpinbox)
         # top center bottom end
 
-        # top center pane end
+    # top center pane end
 
-        # top left pane start
-        self.layouttopleftV.addWidget(self.PSUdict["Vgs PSU"].PSUwindow)
+    # bottom start
 
-        # right pane start
-        self.layouttoprightV.addWidget(self.PSUdict["Vds PSU"].PSUwindow)
-
-        # right pane end
-        # bottom start
-
-        self.plot_area = plotwin()
+        self.plot_area = PlotWin()
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         separator.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
@@ -172,7 +126,7 @@ class MainWindow(QMainWindow):
         self.layoutbottomH.addWidget(self.smoothcurveCheckB)
 
         self.plotlimitsCheckB = QCheckBox("Plot Power lim")
-        self.plotlimitsCheckB.toggled.connect(lambda x: self.plot_area.plotlimits(self.MaxpwrSpinbox.value(),
+        self.plotlimitsCheckB.toggled.connect(lambda x: self.plot_area.plotlimits(self.DUTMaxPSpinbox.value(),
                                                                                   self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.value(),
                                                                                   self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.value(),
                                                                                   x))
@@ -184,33 +138,30 @@ class MainWindow(QMainWindow):
         self.savecurvesB.pressed.connect(self.savecurves)
         self.layoutbottomH.addWidget(self.savecurvesB)
 
-        self.layoutbottomV.addLayout(self.layoutbottomH)
+    # bottom end
 
-        self.layoutbottomV.addWidget(self.plot_area)
-
-        # bottom end
-
-        self.layouttopH.addLayout(self.layouttopleftV)
+        self.layouttopH.addWidget(self.PSUdict["Vgs PSU"].PSUwindow)
         self.layouttopH.addStretch()
 
-        self.layouttopcenterV.addStretch()
         self.layouttopcenterV.addLayout(self.layouttopcentertopH)
-        self.layouttopcentermiddleH.addStretch()
         self.layouttopcenterV.addLayout(self.layouttopcentermiddleH)
-        self.layouttopcentermiddleH.addStretch()
         self.layouttopcenterV.addLayout(self.layouttopcenterbottomH)
-        self.layouttopcenterV.addStretch()
 
-        self.layouttopH.addLayout(self.layouttopcenterV)
+        self.layouttopH.addLayout(self.layouttopcenterV, 0)
+
         self.layouttopH.addStretch()
+        self.layouttopH.addWidget(self.PSUdict["Vds PSU"].PSUwindow)
 
-        self.layouttopH.addLayout(self.layouttoprightV)
+        self.mainlayout.addLayout(self.layouttopH, 0)
 
-        self.mainlayout.addLayout(self.layouttopH)
-        self.mainlayout.addStretch()
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        # separator.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        separator.setLineWidth(3)
 
-        self.mainlayout.addLayout(self.layoutbottomV)
-        self.mainlayout.addStretch()
+        self.mainlayout.addWidget(separator)
+        self.mainlayout.addLayout(self.layoutbottomH)
+        self.mainlayout.addWidget(self.plot_area)
 
     def savecurves(self):
         print("pressed")
@@ -232,7 +183,7 @@ class MainWindow(QMainWindow):
             self.freeze(True)
             self.plot_area.reset()
             self.thread = QThread()
-            self.worker = traceroutine.worker(self.PSUdict, self.MaxpwrSpinbox)
+            self.worker = traceroutine.Worker(self.PSUdict)
             self.worker.moveToThread(self.thread)
 
             self.thread.started.connect(self.worker.traceroutine)
@@ -258,20 +209,25 @@ class MainWindow(QMainWindow):
 
     def getdata(self, data):
         self.data = data
+        print(self.data)
 
     def freeze(self, freeze):
         self.psuVgsbutton.button.setDisabled(freeze)
         self.psuVdsbutton.button.setDisabled(freeze)
         self.PSUdict["Vgs PSU"].disablespinbxs(freeze)
         self.PSUdict["Vds PSU"].disablespinbxs(freeze)
-        self.IdleSpinbox.setDisabled(freeze)
-        self.PheatLabel.setDisabled(freeze)
-        self.MaxpwrLabel.setDisabled(freeze)
+        self.dut_widgets.IdleSpinbox.setDisabled(freeze)
+        self.dut_widgets.PheatLabel.setDisabled(freeze)
+        self.dut_widgets.DUTMaxPLabel.setDisabled(freeze)
         self.smoothcurveCheckB.setDisabled(freeze)
         self.plotlimitsCheckB.setDisabled(freeze)
         self.savecurvesB.setDisabled(freeze)
 
     def closeEvent(self, event):
+        self.PSUdict["Vgs PSU"].setvoltage(0)
+        self.PSUdict["Vds PSU"].setvoltage(0)
+        self.PSUdict["Vgs PSU"].enableoutput(False)
+        self.PSUdict["Vds PSU"].enableoutput(False)
         if self.PsuSetupWin:
             self.PsuSetupWin.deleteLater()
 
@@ -299,6 +255,55 @@ class PsuButtonBox(QWidget):
             stylesheet = "QWidget {background-color: QLinearGradient(y1:0, y2:1, stop: 0.49 dimgrey, stop: 0.51 red)}"
             self.button.setStyleSheet(stylesheet)
             self.button.setText("-                  -\n" + self.psuKey + "\n+                 +")
+
+
+class DutSet(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.dutset_layout = QHBoxLayout()
+        self.setLayout(self.dutset_layout)
+        self.IdleLabel = QLabel("Idle sec")
+        self.IdleLabel.setMinimumSize(110, 50)
+        self.dutset_layout.addWidget(self.IdleLabel)
+
+        # self.layout.addStretch()
+        self.IdleSpinbox = QDoubleSpinBox()
+        self.IdleSpinbox.setMinimumSize(130, 50)
+        self.IdleSpinbox.setMaximumSize(130, 50)
+        self.IdleSpinbox.setMinimum(0)
+        self.IdleSpinbox.setMaximum(10)
+        self.IdleSpinbox.setSingleStep(0.01)
+
+        self.dutset_layout.addWidget(self.IdleSpinbox)
+
+        # self.dutset_layout.addStretch()
+
+        self.PheatLabel = QLabel("Preheat sec")
+        self.PheatLabel.setMinimumSize(160, 50)
+        self.dutset_layout.addWidget(self.PheatLabel)
+
+        # self.layout.addStretch()
+        self.PheatSpinbox = QSpinBox()
+        self.PheatSpinbox.setMinimumSize(130, 50)
+        self.PheatSpinbox.setMaximumSize(130, 50)
+        self.PheatSpinbox.setMinimum(0)
+        self.PheatSpinbox.setMaximum(100)
+        self.dutset_layout.addWidget(self.PheatSpinbox)
+
+        # self.dutset_layout.addStretch()
+
+        self.DUTMaxPLabel = QLabel("Max Power")
+        self.DUTMaxPLabel.setMinimumSize(150, 50)
+        self.dutset_layout.addWidget(self.DUTMaxPLabel)
+
+        # self.layout.addStretch()
+        self.DUTMaxPSpinbox = QSpinBox()
+        self.DUTMaxPSpinbox.setMinimumSize(130, 50)
+        self.DUTMaxPSpinbox.setMaximumSize(130, 50)
+        self.DUTMaxPSpinbox.setMinimum(0)
+        self.DUTMaxPSpinbox.setMaximum(300)
+        self.dutset_layout.addWidget(self.DUTMaxPSpinbox)
 
 
 app = QApplication(sys.argv)
