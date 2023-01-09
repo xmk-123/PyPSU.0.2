@@ -7,3 +7,4 @@ from powersupply_EMPTY import EmptyPSU
 physicalpsusClasses = {"Korad": KORAD,
                        "Test PSU": TestPSU,
                        "Empty PSU": EmptyPSU}
+temperature_allowance = 1

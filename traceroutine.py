@@ -1,69 +1,102 @@
-from PyQt5.QtCore import pyqtSignal, QObject
+import time
+
+from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
 
 class Worker(QObject):
-    finished = pyqtSignal(object)
     plotdata = pyqtSignal(object)
     newcurve = pyqtSignal(float)
+    finished = pyqtSignal(object)
 
-    def __init__(self, _psudict):
+    def __init__(self, _psudict, temperature_stable):
         super().__init__()
         self._PSUdict = _psudict
         self._MaxP = self._PSUdict["DUT settings"].DUTMaxPSpinbox.value()
+        self.temperature_stable = temperature_stable
 
+    @pyqtSlot()
     def traceroutine(self):
 
-        emmSTOP = False
-        _data = None
+        self._data = None
 
-        _VgsPSU = self._PSUdict["Vgs PSU"]
-        _VdsPSU = self._PSUdict["Vds PSU"]
+        self._VgsPSU = self._PSUdict["Vgs PSU"]
+        self._VdsPSU = self._PSUdict["Vds PSU"]
 
-        _VgsEND = _VgsPSU.VENDwidget.widgetSpinbox.value()
-        _VdsEND = _VdsPSU.VENDwidget.widgetSpinbox.value()
-        _IdsMAX = _VdsPSU.IMAXwidget.widgetSpinbox.value()
+        _VgsEND = self._VgsPSU.VENDwidget.widgetSpinbox.value()
+        _VdsEND = self._VdsPSU.VENDwidget.widgetSpinbox.value()
+        _IdsMAX = self._VdsPSU.IMAXwidget.widgetSpinbox.value()
 
-        _VdsPSU.setvoltage(0)
-        _VdsPSU.setcurrent(0)
-        _VdsPSU.enableoutput(True)
-        _Vds = _VdsPSU.VSTARTwidget.widgetSpinbox.value()
+        self._VdsPSU.setvoltage(0)
+        self._VdsPSU.setcurrent(0)
+        self._VdsPSU.enableoutput(True)
+        _Vds = self._VdsPSU.VSTARTwidget.widgetSpinbox.value()
 
-        if _VgsPSU.name != "Empty PSU":
-            _VgsPSU.setvoltage(0)
-            _VgsPSU.setcurrent(0)
-            _VgsPSU.enableoutput(True)
-        _Vgs = _VgsPSU.VSTARTwidget.widgetSpinbox.value()
-        _readVds = _VdsPSU.read(3)
+        if self._VgsPSU.name != "Empty PSU":
+            self._VgsPSU.setvoltage(0)
+            self._VgsPSU.setcurrent(0)
+            self._VgsPSU.enableoutput(True)
+        _Vgs = self._VgsPSU.VSTARTwidget.widgetSpinbox.value()
+        _readVds = self._VdsPSU.read(3)
 
         _i = 0
         while _Vgs <= _VgsEND:
-            if _data is None:
-                _data = [[_Vgs, [0], [0], [""]]]
+            if self._data is None:
+                self._data = [[_Vgs, [0], [0], [""]]]
             else:
-                _data.append([_Vgs, [0], [0], [""]])
+                self._data.append([_Vgs, [0], [0], [""]])
 
-            _VgsPSU.setvoltage(_Vgs)
+            if self.thread().isInterruptionRequested():
+                self.stop()
+                return
+            self.SetVoltageAndCheckStableTemp(self._VgsPSU, _Vgs)
             while _Vds <= _VdsEND:
-                _VdsPSU.setcurrent(min(_IdsMAX, self._MaxP / _Vds))
-                _VdsPSU.setvoltage(_Vds)
-                _readVds = _VdsPSU.read(3)  # ****************************remove _Vgs
-                _data[_i][1].append(_VdsPSU.polarity * _readVds["voltage"])
-                _data[_i][2].append(_VdsPSU.polarity * _readVds["current"])
-                _data[_i][3].append(_VdsPSU.polarity * _readVds["mode"])
-                self.plotdata.emit(_data)
+                self._VdsPSU.setcurrent(min(_IdsMAX, self._MaxP / _Vds))
+                if self.thread().isInterruptionRequested():
+                    self.stop()
+                    return
+                self.SetVoltageAndCheckStableTemp(self._VdsPSU, _Vds)
+                _readVds = self._VdsPSU.read(3)  # ****************************remove _Vgs
+                self._data[_i][1].append(self._VdsPSU.polarity * _readVds["voltage"])
+                self._data[_i][2].append(self._VdsPSU.polarity * _readVds["current"])
+                self._data[_i][3].append(self._VdsPSU.polarity * _readVds["mode"])
+                self.plotdata.emit(self._data)
                 if _readVds["mode"] == "CC":
-                    _VdsEND = _Vds - _VdsPSU.STEPwidget.widgetSpinbox.value()
-                _Vds += _VdsPSU.STEPwidget.widgetSpinbox.value()
-            _Vds = _VdsPSU.VSTARTwidget.widgetSpinbox.value()
-            _Vgs += _VgsPSU.STEPwidget.widgetSpinbox.value()
+                    _VdsEND = _Vds - self._VdsPSU.STEPwidget.widgetSpinbox.value()
+                _Vds += self._VdsPSU.STEPwidget.widgetSpinbox.value()
+            _Vds = self._VdsPSU.VSTARTwidget.widgetSpinbox.value()
+            _Vgs += self._VgsPSU.STEPwidget.widgetSpinbox.value()
             _i += 1
 
-        _VdsPSU.enableoutput(False)
-        _VdsPSU.setvoltage(0)
-        _VdsPSU.setcurrent(0)
-        if _VgsPSU.name != "Empty PSU":
-            _VgsPSU.enableoutput(False)
-            _VgsPSU.setvoltage(0)
-            _VgsPSU.setcurrent(0)
+        self._VdsPSU.enableoutput(False)
+        self._VdsPSU.setvoltage(0)
+        self._VdsPSU.setcurrent(0)
+        if self._VgsPSU.name != "Empty PSU":
+            self._VgsPSU.enableoutput(False)
+            self._VgsPSU.setvoltage(0)
+            self._VgsPSU.setcurrent(0)
 
-        self.finished.emit(_data)
+        self.finished.emit(self._data)
+
+    def SetVoltageAndCheckStableTemp(self, _psu, _voltage):
+        _psu.setvoltage(_voltage)
+        time.sleep(1)
+        while self.temperature_stable["status"] != True:
+            print("waiting for temperature to stabilize")
+            time.sleep(1)
+
+    def stop(self):
+        self._VdsPSU.enableoutput(False)
+        self._VdsPSU.setvoltage(0)
+        self._VdsPSU.setcurrent(0)
+        if self._VgsPSU.name != "Empty PSU":
+            self._VgsPSU.enableoutput(False)
+            self._VgsPSU.setvoltage(0)
+            self._VgsPSU.setcurrent(0)
+
+        self.finished.emit(self._data)
+
+
+
+
+
+

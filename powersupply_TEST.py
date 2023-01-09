@@ -33,7 +33,7 @@ class TestPSU:
         self.current = current
 
     def physical_psu_readings(self, n=0, vgs=1):
-        return
+        return {"voltage": 8, "current": 7, "mode": "CV"}
         self.current = (self.voltage * 0.5) ** vgs
         if self.current > self.IMAXwidget.widgetSpinbox.value():
             return {"voltage": self.voltage, "current": self.IMAXwidget.widgetSpinbox.value(), "mode": "CC"}

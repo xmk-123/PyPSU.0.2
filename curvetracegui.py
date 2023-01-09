@@ -1,4 +1,6 @@
 import sys
+import time
+
 from PyQt5.QtCore import pyqtSignal, QThread
 from plot import PlotWin
 from setup import PsuInitWindow
@@ -10,14 +12,20 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
 import traceroutine
 from powersupply_EMPTY import EmptyPSU
 from VirtualPSU import VirtualPSU
+import temperaturemonitor
 
 
 class MainWindow(QMainWindow):
+
+    stop_temperature_sensor = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         # self.showMaximized()
         self.PSUdict = {"Vgs PSU": VirtualPSU([EmptyPSU()]),
                         "Vds PSU": VirtualPSU([EmptyPSU()])}
+        self.temperature_stable = {"status": False}
+
         self.PsuSetupWin = PsuInitWindow(self.PSUdict)
         self.PsuSetupWin.Vgspolaritychanged.connect(lambda s: self.psuVgsbutton.set(s))
         self.PsuSetupWin.Vdspolaritychanged.connect(lambda s: self.psuVdsbutton.set(s))
@@ -165,32 +173,43 @@ class MainWindow(QMainWindow):
         self.PsuSetupWin.show()
 
     def test(self):
+        self.start_temperature_sensor()
         self.starttracing()
 
     def test2(self):
-        self.PsuSetupWin._settings.clear()
-        print(self.PsuSetupWin)
-        if self.PsuSetupWin:
-            print("is open psu setup win")
+
+        self.stop_temperature_sensor.emit()
+
+        # print(isinstance("temperature_thread", QThread))
+        # self.temprature_on["status"] = False
+        # print(isinstance("temperature_thread", QThread))
+
+        # self.PsuSetupWin._settings.clear()
+        # print(self.PsuSetupWin)
+        # if self.PsuSetupWin:
+        #     print("is open psu setup win")
 
     def starttracing(self):
         if self.PSUdict["Vds PSU"].name != "Empty PSU":
             self.freeze(True)
             self.plot_area.reset()
-            self.thread = QThread()
-            self.worker = traceroutine.Worker(self.PSUdict)
-            self.worker.moveToThread(self.thread)
 
-            self.thread.started.connect(self.worker.traceroutine)
-            self.thread.finished.connect(self.thread.deleteLater)
-            self.worker.finished.connect(self.getdata)
-            self.worker.finished.connect(lambda x: self.freeze(False))
-            self.worker.finished.connect(self.thread.quit)
-            self.worker.finished.connect(self.worker.deleteLater)
-            self.worker.newcurve.connect(lambda x: self.plot_area.newcurve(x))
-            self.worker.plotdata.connect(lambda x: self.plot_area.plotdata(x))
+            self.tracing_thread = QThread()
+            self.tracing_worker = traceroutine.Worker(self.PSUdict, self.temperature_stable)
+            self.tracing_worker.moveToThread(self.tracing_thread)
 
-            self.thread.start()
+            self.tracing_thread.started.connect(self.tracing_worker.traceroutine)
+            self.tracing_thread.finished.connect(self.tracing_thread.deleteLater)
+            self.tracing_worker.finished.connect(self.getdata)
+            self.tracing_worker.finished.connect(lambda x: self.freeze(False))
+            self.tracing_worker.finished.connect(self.tracing_thread.quit)
+            self.tracing_worker.finished.connect(self.tracing_worker.deleteLater)
+            self.tracing_worker.finished.connect(self.stop_temp)
+
+            self.tracing_worker.newcurve.connect(lambda x: self.plot_area.newcurve(x))
+            self.tracing_worker.plotdata.connect(lambda x: self.plot_area.plotdata(x))
+
+            self.tracing_thread.start()
         else:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
@@ -202,29 +221,67 @@ class MainWindow(QMainWindow):
             msg.setStandardButtons(QMessageBox.Ok)
             msg.exec()
 
+    def start_temperature_sensor(self):
+        self.temperature_thread = QThread()
+        self.temperature_worker = temperaturemonitor.TemperatureWorker()
+        self.temperature_worker.moveToThread(self.temperature_thread)
+
+        self.temperature_thread.started.connect(self.temperature_worker.start_temp_controller)
+        self.temperature_thread.finished.connect(self.temperature_thread.deleteLater)
+        self.temperature_worker.finished.connect(self.temperature_thread.quit)
+        self.temperature_worker.finished.connect(self.temperature_worker.deleteLater)
+
+        self.temperature_worker.temperature_data.connect(lambda x: self.dut_widgets.TemperatureIndicator.setText(str(x)))
+        self.temperature_worker.temp_stable.connect(self.temperature_drift)
+
+        self.temperature_thread.start()
+
+    def stop_temp(self):
+        self.stop_temperature_sensor.connect(self.temperature_worker.stop_poller)
+        self.stop_temperature_sensor.emit()
+
+    def temperature_drift(self, status: bool):
+        self.temperature_stable["status"] = status
+
     def getdata(self, data):
         self.data = data
-        print(self.data)
 
     def freeze(self, freeze):
         self.psuVgsbutton.button.setDisabled(freeze)
         self.psuVdsbutton.button.setDisabled(freeze)
         self.PSUdict["Vgs PSU"].disablespinbxs(freeze)
         self.PSUdict["Vds PSU"].disablespinbxs(freeze)
-        self.dut_widgets.IdleSpinbox.setDisabled(freeze)
-        self.dut_widgets.TempLabel.setDisabled(freeze)
+        self.dut_widgets.TemperatureIndicator.setDisabled(freeze)
+        self.dut_widgets.TempSpinbox.setDisabled(freeze)
         self.dut_widgets.DUTMaxPLabel.setDisabled(freeze)
         self.smoothcurveCheckB.setDisabled(freeze)
         self.plotlimitsCheckB.setDisabled(freeze)
         self.savecurvesB.setDisabled(freeze)
 
     def closeEvent(self, event):
+        try:
+            self.tracing_thread.requestInterruption()
+            self.tracing_thread.quit()
+            while self.tracing_thread.isRunning():
+                print("waiting tracing_thread to end")
+                time.sleep(1)
+        except:
+            pass
+
+        try:
+            self.temperature_thread.stop_poller()
+            self.temperature_thread.quit()
+            while self.temperature_thread.isRunning():
+                print("waiting temperature_thread to end")
+                time.sleep(1)
+        except:
+            pass
+
         self.PSUdict["Vgs PSU"].setvoltage(0)
         self.PSUdict["Vds PSU"].setvoltage(0)
         self.PSUdict["Vgs PSU"].enableoutput(False)
         self.PSUdict["Vds PSU"].enableoutput(False)
-        if self.PsuSetupWin:
-            self.PsuSetupWin.deleteLater()
+        self.PsuSetupWin.deleteLater()
 
 
 class PsuButtonBox(QWidget):
@@ -259,21 +316,15 @@ class DutSet(QWidget):
         self.dutset_layout = QHBoxLayout()
         self.setLayout(self.dutset_layout)
 
-        # self.IdleLabel = QLabel("Idle sec")
-        # self.IdleLabel.setMinimumSize(110, 50)
-        # self.dutset_layout.addWidget(self.IdleLabel)
-        #
-        # # self.layout.addStretch()
-        # self.IdleSpinbox = QDoubleSpinBox()
-        # self.IdleSpinbox.setMinimumSize(130, 50)
-        # self.IdleSpinbox.setMaximumSize(130, 50)
-        # self.IdleSpinbox.setMinimum(0)
-        # self.IdleSpinbox.setMaximum(10)
-        # self.IdleSpinbox.setSingleStep(0.01)
-        #
-        # self.dutset_layout.addWidget(self.IdleSpinbox)
+        self.TemperatureLabel = QLabel("Tempr")
+        self.TemperatureLabel.setMinimumSize(110, 50)
+        self.dutset_layout.addWidget(self.TemperatureLabel)
 
-        # self.dutset_layout.addStretch()
+        self.TemperatureIndicator = QLabel("0")
+        self.TemperatureIndicator.setMinimumSize(110, 50)
+        self.dutset_layout.addWidget(self.TemperatureIndicator)
+
+        self.dutset_layout.addStretch()
 
         self.TempLabel = QLabel("Temp")
         self.TempLabel.setMinimumSize(80, 50)
