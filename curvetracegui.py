@@ -177,12 +177,15 @@ class MainWindow(QMainWindow):
         self.starttracing()
 
     def test2(self):
+        try:
+            print("tracing thread " + str(self.tracing_thread.isRunning()))
+        except BaseException as e:
+            print(e)
+        try:
+            print("temperature thread " + str(self.temperature_thread.isRunning()))
+        except BaseException as e:
+            print(e)
 
-        self.stop_temperature_sensor.emit()
-
-        # print(isinstance("temperature_thread", QThread))
-        # self.temprature_on["status"] = False
-        # print(isinstance("temperature_thread", QThread))
 
         # self.PsuSetupWin._settings.clear()
         # print(self.PsuSetupWin)
@@ -237,7 +240,7 @@ class MainWindow(QMainWindow):
         self.temperature_thread.start()
 
     def stop_temp(self):
-        self.stop_temperature_sensor.connect(self.temperature_worker.stop_poller)
+        self.stop_temperature_sensor.connect(self.temperature_worker.end_temperaturemonitor)
         self.stop_temperature_sensor.emit()
 
     def temperature_drift(self, status: bool):
@@ -245,6 +248,10 @@ class MainWindow(QMainWindow):
 
     def getdata(self, data):
         self.data = data
+        print("trace end")
+        time.sleep(1)
+        print("tracing thread " + str(self.tracing_thread.isRunning()))
+        print("temperature thread " + str(self.temperature_thread.isRunning()))
 
     def freeze(self, freeze):
         self.psuVgsbutton.button.setDisabled(freeze)
@@ -265,16 +272,15 @@ class MainWindow(QMainWindow):
             while self.tracing_thread.isRunning():
                 print("waiting tracing_thread to end")
                 time.sleep(1)
-        except:
+        except AttributeError:
             pass
-
         try:
             self.temperature_thread.stop_poller()
             self.temperature_thread.quit()
             while self.temperature_thread.isRunning():
                 print("waiting temperature_thread to end")
                 time.sleep(1)
-        except:
+        except AttributeError:
             pass
 
         self.PSUdict["Vgs PSU"].setvoltage(0)

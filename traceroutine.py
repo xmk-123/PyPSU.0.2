@@ -55,7 +55,7 @@ class Worker(QObject):
                     self.stop()
                     return
                 self.SetVoltageAndCheckStableTemp(self._VdsPSU, _Vds)
-                _readVds = self._VdsPSU.read(3)  # ****************************remove _Vgs
+                _readVds = self._VdsPSU.read(3)
                 self._data[_i][1].append(self._VdsPSU.polarity * _readVds["voltage"])
                 self._data[_i][2].append(self._VdsPSU.polarity * _readVds["current"])
                 self._data[_i][3].append(self._VdsPSU.polarity * _readVds["mode"])
@@ -79,7 +79,6 @@ class Worker(QObject):
 
     def SetVoltageAndCheckStableTemp(self, _psu, _voltage):
         _psu.setvoltage(_voltage)
-        time.sleep(1)
         while self.temperature_stable["status"] != True:
             print("waiting for temperature to stabilize")
             time.sleep(1)

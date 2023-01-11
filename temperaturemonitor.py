@@ -16,39 +16,47 @@ class TemperatureWorker(QObject):
     def __init__(self):
         super().__init__()
         self.match = 0
-        self.refreshtime = 100
+        self.refreshtime = 1000  # ms
+        self.temperature_stable = False
 
         try:
-            self.sensor = TemperatureSensor(UART_Adapter('/dev/ttyUSB0'))
+            self.sensor = TemperatureSensor(UART_Adapter('/dev/ttyUSB'))
         except(DeviceError, AdapterError) as e:
             print(e)
-            self.sensor = DummyTemperatureSensor()
+            self.sensor = None
 
     @pyqtSlot()
     def start_temp_controller(self):
-        self.temperature_last = self.sensor.get_temperature()
-        self.poller = QTimer(self)
-        self.poller.timeout.connect(self.read_sensor)
-        self.poller.start(self.refreshtime)
+        if self.sensor is None:
+            self.temp_stable.emit(True)
+            self.temperature_data.emit(0)
+        else:
+            self.temperature_last = self.sensor.get_temperature()
+            self.poller = QTimer(self)
+            self.poller.timeout.connect(self.read_sensor)
+            self.poller.start(self.refreshtime)
 
     def read_sensor(self):
         temperature = self.sensor.get_temperature()
         self.temperature_data.emit(temperature)
-        print(temperature)
-        if self.temperature_last - temperature_allowance <= temperature <= self.temperature_last + temperature_allowance:
-            self.match += 1
-            if self.match == 5:
-                self.temp_stable.emit(True)
+        if self.sensor.name != "Dummy":
+            if self.temperature_last - temperature_allowance <= temperature <= self.temperature_last + temperature_allowance:
+                self.match += 1
+                if self.match == 5:
+                    self.set_temperature_drift_status(True)
+                else:
+                    self.match = 0
+                    self.set_temperature_drift_status(False)
         else:
-            self.match = 0
-            self.temp_stable.emit(False)
+            self.set_temperature_drift_status(True)
+
+    def set_temperature_drift_status(self, status):
+        if status is not self.temperature_stable:
+            self.temperature_stable = status
+            self.temp_stable.emit(status)
 
     @pyqtSlot()
-    def stop_poller(self):
-        self.poller.stop()
-
-
-class DummyTemperatureSensor:
-
-    def get_temperature(self):
-        return 99
+    def end_temperaturemonitor(self):
+        if self.sensor is not None:
+            self.poller.stop()
+        self.finished.emit()
