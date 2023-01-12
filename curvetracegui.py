@@ -23,7 +23,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         # self.showMaximized()
         self.PSUdict = {"Vgs PSU": VirtualPSU([EmptyPSU()]),
-                        "Vds PSU": VirtualPSU([EmptyPSU()])}
+                        "Vds PSU": VirtualPSU([EmptyPSU()]),
+                        "Temperature Sensor": None}
         self.temperature_stable = {"status": False}
 
         self.PsuSetupWin = PsuInitWindow(self.PSUdict)
@@ -31,7 +32,6 @@ class MainWindow(QMainWindow):
         self.PsuSetupWin.Vdspolaritychanged.connect(lambda s: self.psuVdsbutton.set(s))
         self.PsuSetupWin.updateMainWindow.connect(self.buildui)
 
-        # self.dutTestParameters = {"Idle sec": 0, "Preheat sec": 0, "Max Power": 0}
         self.data = None
 
         self.buildui()
@@ -173,10 +173,10 @@ class MainWindow(QMainWindow):
         self.PsuSetupWin.show()
 
     def test(self):
-        self.start_temperature_sensor()
         self.starttracing()
 
     def test2(self):
+        print(self.PsuSetupWin.PsusLabel.text())
         try:
             print("tracing thread " + str(self.tracing_thread.isRunning()))
         except BaseException as e:
@@ -185,15 +185,14 @@ class MainWindow(QMainWindow):
             print("temperature thread " + str(self.temperature_thread.isRunning()))
         except BaseException as e:
             print(e)
-
-
-        # self.PsuSetupWin._settings.clear()
-        # print(self.PsuSetupWin)
-        # if self.PsuSetupWin:
-        #     print("is open psu setup win")
+        try:
+            print("temperature worker match = " + str(self.temperature_worker.match))
+        except BaseException as e:
+            print(e)
 
     def starttracing(self):
         if self.PSUdict["Vds PSU"].name != "Empty PSU":
+            self.start_temperature_sensor()
             self.freeze(True)
             self.plot_area.reset()
 
@@ -203,17 +202,19 @@ class MainWindow(QMainWindow):
 
             self.tracing_thread.started.connect(self.tracing_worker.traceroutine)
             self.tracing_thread.finished.connect(self.tracing_thread.deleteLater)
+
             self.tracing_worker.finished.connect(self.getdata)
+            self.tracing_worker.finished.connect(self.temperature_thread.requestInterruption)
             self.tracing_worker.finished.connect(lambda x: self.freeze(False))
             self.tracing_worker.finished.connect(self.tracing_thread.quit)
             self.tracing_worker.finished.connect(self.tracing_worker.deleteLater)
-            self.tracing_worker.finished.connect(self.stop_temp)
 
             self.tracing_worker.newcurve.connect(lambda x: self.plot_area.newcurve(x))
             self.tracing_worker.plotdata.connect(lambda x: self.plot_area.plotdata(x))
 
             self.tracing_thread.start()
         else:
+
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
 
@@ -226,7 +227,7 @@ class MainWindow(QMainWindow):
 
     def start_temperature_sensor(self):
         self.temperature_thread = QThread()
-        self.temperature_worker = temperaturemonitor.TemperatureWorker()
+        self.temperature_worker = temperaturemonitor.TemperatureWorker(self.PSUdict["Temperature Sensor"])
         self.temperature_worker.moveToThread(self.temperature_thread)
 
         self.temperature_thread.started.connect(self.temperature_worker.start_temp_controller)
@@ -239,19 +240,11 @@ class MainWindow(QMainWindow):
 
         self.temperature_thread.start()
 
-    def stop_temp(self):
-        self.stop_temperature_sensor.connect(self.temperature_worker.end_temperaturemonitor)
-        self.stop_temperature_sensor.emit()
-
     def temperature_drift(self, status: bool):
         self.temperature_stable["status"] = status
 
     def getdata(self, data):
         self.data = data
-        print("trace end")
-        time.sleep(1)
-        print("tracing thread " + str(self.tracing_thread.isRunning()))
-        print("temperature thread " + str(self.temperature_thread.isRunning()))
 
     def freeze(self, freeze):
         self.psuVgsbutton.button.setDisabled(freeze)
@@ -266,21 +259,26 @@ class MainWindow(QMainWindow):
         self.savecurvesB.setDisabled(freeze)
 
     def closeEvent(self, event):
+
         try:
             self.tracing_thread.requestInterruption()
             self.tracing_thread.quit()
+            # self.tracing_thread.wait(3)
             while self.tracing_thread.isRunning():
                 print("waiting tracing_thread to end")
                 time.sleep(1)
-        except AttributeError:
+        except (AttributeError, RuntimeError):
             pass
+
         try:
-            self.temperature_thread.stop_poller()
+            self.temperature_thread.requestInterruption()
+            time.sleep(3)
             self.temperature_thread.quit()
             while self.temperature_thread.isRunning():
                 print("waiting temperature_thread to end")
                 time.sleep(1)
-        except AttributeError:
+        except (AttributeError, RuntimeError) as e:
+            print(e)
             pass
 
         self.PSUdict["Vgs PSU"].setvoltage(0)

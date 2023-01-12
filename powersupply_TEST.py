@@ -27,17 +27,18 @@ class TestPSU:
     def output(self, i=True):
         pass
 
-    def setvoltage(self, voltagetarget):        self.voltage = voltagetarget
+    def setvoltage(self, voltagetarget):
+        self.voltage = voltagetarget
 
     def setcurrent(self, current):
         self.current = current
 
     def physical_psu_readings(self, n=0, vgs=1):
         return {"voltage": 8, "current": 7, "mode": "CV"}
-        self.current = (self.voltage * 0.5) ** vgs
-        if self.current > self.IMAXwidget.widgetSpinbox.value():
-            return {"voltage": self.voltage, "current": self.IMAXwidget.widgetSpinbox.value(), "mode": "CC"}
-        return {"voltage": self.voltage, "current": self.current, "mode": "CV"}
+        # self.current = (self.voltage * 0.5) ** vgs
+        # if self.current > self.IMAXwidget.widgetSpinbox.value():
+        #     return {"voltage": self.voltage, "current": self.IMAXwidget.widgetSpinbox.value(), "mode": "CC"}
+        # return {"voltage": self.voltage, "current": self.current, "mode": "CV"}
 
 
 class srl:

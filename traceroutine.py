@@ -79,7 +79,10 @@ class Worker(QObject):
 
     def SetVoltageAndCheckStableTemp(self, _psu, _voltage):
         _psu.setvoltage(_voltage)
-        while self.temperature_stable["status"] != True:
+        while not self.temperature_stable["status"]:
+            if self.thread().isInterruptionRequested():
+                self.stop()
+                return
             print("waiting for temperature to stabilize")
             time.sleep(1)
 
@@ -91,6 +94,7 @@ class Worker(QObject):
             self._VgsPSU.enableoutput(False)
             self._VgsPSU.setvoltage(0)
             self._VgsPSU.setcurrent(0)
+        print("ZEROED Voltages")
 
         self.finished.emit(self._data)
 

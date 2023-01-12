@@ -2,7 +2,7 @@ import serial
 from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSignal, QSettings
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QMainWindow, QListWidget, QRadioButton, \
-    QMessageBox, QLabel, QToolButton, QButtonGroup
+    QMessageBox, QLabel, QToolButton, QButtonGroup, QFrame, QSizePolicy
 import logging
 import serial.tools.list_ports
 
@@ -39,6 +39,7 @@ class PsuInitWindow(QMainWindow):
         super().__init__()
 
         self.PSUdict = psudict
+
         self._settings = QSettings()
         # self._settings.clear()
 
@@ -47,7 +48,7 @@ class PsuInitWindow(QMainWindow):
         _INITlayout = QVBoxLayout()
         self.setCentralWidget(self.window)
         self.window.setLayout(_INITlayout)
-# *************** PSUs list - Ports list
+# *************** PSUs list - Ports list - thermometer sensor
 
         _1sthorizlayout = QHBoxLayout()
 
@@ -77,6 +78,18 @@ class PsuInitWindow(QMainWindow):
         _portsLayout.addWidget(self.PortsListWidget)
         _1sthorizlayout.addLayout(_portsLayout)
 
+        _SensorLayout = QVBoxLayout()
+        self.SensorLabel = QLabel("Sensors list")
+        self.SensorLabel.setMinimumSize(150, 50)
+        _SensorLayout.addWidget(self.SensorLabel)
+
+        self.SensorListWidget = QListWidget()
+        self.SensorListWidget.addItems(([t for t in temperatureSensorsClasses.keys()]))
+        self.SensorListWidget.setMinimumSize(250, 35)
+        self.SensorListWidget.adjustSize()
+        _SensorLayout.addWidget(self.SensorListWidget)
+        _1sthorizlayout.addLayout(_SensorLayout)
+
         _INITlayout.addLayout(_1sthorizlayout)
 # *************** connect physical psu - Update ports  buttons
 
@@ -89,7 +102,24 @@ class PsuInitWindow(QMainWindow):
         self.updateportsbutton = QPushButton("Update\nPorts")
         self.updateportsbutton.clicked.connect(self.refreshports)
         _2ndhorizlayout.addWidget(self.updateportsbutton)
+
+        self.connect_sensor_button = QPushButton("Connect\nsensor")
+        self.connect_sensor_button.clicked.connect(self.checkandconnect_sensor)
+        _2ndhorizlayout.addWidget(self.connect_sensor_button)
         _INITlayout.addLayout(_2ndhorizlayout)
+
+        separator_1 = QFrame()
+        separator_1.setFrameShape(QFrame.HLine)
+        separator_1.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        separator_1.setLineWidth(5)
+
+        separator_2 = QFrame()
+        separator_2.setFrameShape(QFrame.HLine)
+        separator_2.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        separator_2.setLineWidth(5)
+
+        _INITlayout.addWidget(separator_1)
+        _INITlayout.addWidget(separator_2)
 
 # *************** PSUs used by Vgs PSU
         _3rddhorizlayout = QHBoxLayout()
@@ -174,7 +204,7 @@ class PsuInitWindow(QMainWindow):
 
         self.ExitButton = QPushButton('Exit')
         self.ExitButton.setMinimumSize(150, 65)
-        self.ExitButton.pressed.connect(self.close)
+        self.ExitButton.pressed.connect(self.hide)
         _initPSUlayout.addWidget(self.ExitButton)
 
         _3rddhorizlayout.addLayout(_initPSUlayout)
@@ -233,7 +263,47 @@ class PsuInitWindow(QMainWindow):
 
         _3rddhorizlayout.addLayout(_VdsPSUlayout)
 
+        # *************** temperature sensor connected
+
+        _sensorConnectedlayout = QVBoxLayout()
+
+        self.sensorConnectedLabel = QLabel("Temperature sensor")
+        self.sensorConnectedLabel.setMinimumSize(150, 50)
+        _sensorConnectedlayout.addWidget(self.sensorConnectedLabel)
+
+        self.sensorConnectedPlaceholder = QLabel()
+        self.sensorConnectedPlaceholder.setMinimumSize(150, 50)
+        _sensorConnectedlayout.addWidget(self.sensorConnectedPlaceholder)
+
+        self.DisconnectSensorButton = QPushButton('Disconnect sensor')
+        self.DisconnectSensorButton.setMinimumSize(150, 65)
+        self.DisconnectSensorButton.pressed.connect(self.disconnect_sensor)
+        _sensorConnectedlayout.addWidget(self.DisconnectSensorButton)
+
+        _3rddhorizlayout.addLayout(_sensorConnectedlayout)
+
         _INITlayout.addLayout(_3rddhorizlayout)
+
+    def checkandconnect_sensor(self):
+        if len(self.SensorListWidget.selectedItems()) == 1 and len(self.PortsListWidget.selectedItems()) == 1:
+            self.connect_sensor(self.SensorListWidget.currentItem().text(), self.PortsListWidget.currentItem().text())
+
+    def connect_sensor(self, sensor_class, port):
+        try:
+            self.PSUdict["Temperature Sensor"] = temperatureSensorsClasses[sensor_class](UART_Adapter(port))
+            usedports.append(port)
+            self.sensorConnectedPlaceholder.setText(sensor_class + "\n at port \n" + port)
+            self.refreshports()
+        except(DeviceError, AdapterError) as e:
+            self.PSUdict["Temperature Sensor"] = None
+            print(e)
+
+    def disconnect_sensor(self):
+        if len(self.sensorConnectedPlaceholder.text()) > 0:
+            usedports.remove(self.sensorConnectedPlaceholder.text().strip().split("\n")[-1])
+            self.PSUdict["Temperature Sensor"] = None
+            self.sensorConnectedPlaceholder.setText("")
+            self.refreshports()
 
     def add_to_psu_list_widget(self, psulistwidget):
         for i in self.AvailablePSUsWidget.selectedItems():
@@ -348,12 +418,18 @@ class PsuInitWindow(QMainWindow):
 
             self.PSUdict["DUT settings"].DUTMaxPSpinbox.setValue(int(self._settings.value("Pmax")))
 
+            self.connect_sensor(self._settings.value("Temperature Sensor").strip().split("\n")[0],
+                                self._settings.value("Temperature Sensor").strip().split("\n")[-1])
+
+
         except(KeyError, TypeError):
             # logger.exception("Key error in applysettings method of StartupSettings class")
             self.PSUdict["Vgs PSU"] = VirtualPSU([EmptyPSU()])
             self.PSUdict["Vds PSU"] = VirtualPSU([EmptyPSU()])
 
     def savesettings(self):
+
+        # self._settings.clear()
 
         vgs_psu_class_names_and_ports = []
         vds_psu_class_names_and_ports = []
@@ -377,3 +453,5 @@ class PsuInitWindow(QMainWindow):
         self._settings.setValue("Vds PSU Imax", self.PSUdict["Vds PSU"].IMAXwidget.widgetSpinbox.value())
 
         self._settings.setValue("Pmax", self.PSUdict["DUT settings"].DUTMaxPSpinbox.value())
+
+        self._settings.setValue("Temperature Sensor", (self.sensorConnectedPlaceholder.text()))
