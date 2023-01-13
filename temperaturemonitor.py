@@ -18,16 +18,12 @@ class TemperatureWorker(QObject):
 
     @pyqtSlot()
     def start_temp_controller(self):
-        if self.sensor is None:
-            self.temp_stable.emit(True)
-            self.temperature_data.emit(0)
-        else:
-            self.temperature_stable = False
-            self.temp_stable.emit(False)
-            self.temperature_last = self.sensor.get_temperature()
+        self.temperature_stable = False
+        self.temp_stable.emit(False)
+        self.temperature_last = self.sensor.get_temperature()
 
-            self.poller.timeout.connect(self.read_sensor)
-            self.poller.start(self.refreshtime)
+        self.poller.timeout.connect(self.read_sensor)
+        self.poller.start(self.refreshtime)
 
         if self.thread().isInterruptionRequested():
             print("isInterruptionRequested")
@@ -36,11 +32,11 @@ class TemperatureWorker(QObject):
 
     def read_sensor(self):
         if self.thread().isInterruptionRequested():
+            print("isInterruptionRequested222")
             self.end_temperaturemonitor()
             return
         temperature = self.sensor.get_temperature()
         self.temperature_data.emit(temperature)
-        print("isInterruptionRequested222")
         if self.sensor is not None:
             if self.temperature_last - temperature_allowance <= temperature <= self.temperature_last + temperature_allowance:
                 self.match += 1

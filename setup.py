@@ -1,3 +1,6 @@
+import time
+from io import StringIO
+import sys
 import serial
 from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSignal, QSettings
@@ -138,7 +141,12 @@ class PsuInitWindow(QMainWindow):
 
         _VgsPSUlayout.addStretch()
 
-        # *************** Polarity
+        # *************** test PSU -- Polarity radio buttons
+
+        self.TestVgsButton = QPushButton('Test')
+        self.TestVgsButton.setMinimumSize(150, 65)
+        self.TestVgsButton.pressed.connect(lambda: self.test_psu("Vgs PSU"))
+        _VgsPSUlayout.addWidget(self.TestVgsButton)
 
         self._VgsRadioButtonGrp = QButtonGroup()
         _polarityVgsPSUlayout = QVBoxLayout()
@@ -242,7 +250,12 @@ class PsuInitWindow(QMainWindow):
         _VdsPSUlayout.addWidget(self.VdsPSUsListWidget)
 
         _VdsPSUlayout.addStretch()
-        # *************** Polarity
+        # ***************  test PSU --Polarity
+
+        self.TestVdsButton = QPushButton('Test')
+        self.TestVdsButton.setMinimumSize(150, 65)
+        self.TestVdsButton.pressed.connect(lambda: self.test_psu("Vds PSU"))
+        _VdsPSUlayout.addWidget(self.TestVdsButton)
 
         self._VdsRadioButtonGrp = QButtonGroup()
         _polarityVdsPSUlayout = QVBoxLayout()
@@ -284,19 +297,42 @@ class PsuInitWindow(QMainWindow):
 
         _INITlayout.addLayout(_3rddhorizlayout)
 
+    def test_psu(self, psu):
+        if self.PSUdict[psu].name != "Empty PSU":
+            self.PSUdict[psu].enableoutput(False)
+            for i in range(2):
+                for physicalpsu in self.PSUdict[psu].physical_psu_objects_list:
+                    physicalpsu.setvoltage(float("1." + "9" * physicalpsu.VRESSETCNT))
+                time.sleep(1)
+                for physicalpsu in self.PSUdict[psu].physical_psu_objects_list:
+                    physicalpsu.setvoltage(0)
+
     def checkandconnect_sensor(self):
         if len(self.SensorListWidget.selectedItems()) == 1 and len(self.PortsListWidget.selectedItems()) == 1:
-            self.connect_sensor(self.SensorListWidget.currentItem().text(), self.PortsListWidget.currentItem().text())
+            self.connect_sensor(self.SensorListWidget.currentItem().text(), self.PortsListWidget.currentItem().text(), True)
 
-    def connect_sensor(self, sensor_class, port):
-        try:
-            self.PSUdict["Temperature Sensor"] = temperatureSensorsClasses[sensor_class](UART_Adapter(port))
-            usedports.append(port)
-            self.sensorConnectedPlaceholder.setText(sensor_class + "\n at port \n" + port)
-            self.refreshports()
-        except(DeviceError, AdapterError) as e:
-            self.PSUdict["Temperature Sensor"] = None
-            print(e)
+    def connect_sensor(self, sensor_class, port, verbose=False):
+        if len(self.sensorConnectedPlaceholder.text()) == 0:
+            try:
+                self.PSUdict["Temperature Sensor"] = temperatureSensorsClasses[sensor_class](UART_Adapter(port))
+                usedports.append(port)
+                self.sensorConnectedPlaceholder.setText(sensor_class + "\n at port \n" + port)
+                self.refreshports()
+
+                old_stdout = sys.stdout
+                sys.stdout = mystdout = StringIO()
+                self.PSUdict["Temperature Sensor"].info()
+                sys.stdout = old_stdout
+
+                if verbose:
+                    self.popup_message("Temperature probe CONECTED\n" + mystdout.getvalue())
+
+            except BaseException as e:
+                self.PSUdict["Temperature Sensor"] = None
+                if verbose:
+                    self.popup_message(str(e))
+        else:
+            self.popup_message("Sensor : " + self.sensorConnectedPlaceholder.text() + "\n is already connected")
 
     def disconnect_sensor(self):
         if len(self.sensorConnectedPlaceholder.text()) > 0:
@@ -331,12 +367,12 @@ class PsuInitWindow(QMainWindow):
     def checkandconnect_physical_psu(self):
         if len(self.PSUsListWidget.selectedItems()) > 0 and len(self.PortsListWidget.selectedItems()) > 0:
             ready_psu_name = self.connect_physical_psu(physicalpsusClasses[self.PSUsListWidget.currentItem().text()],
-                                                       self.PortsListWidget.currentItem().text())
+                                                       self.PortsListWidget.currentItem().text(), True)
             self.AvailablePSUsWidget.addItem(ready_psu_name)
             self.PortsListWidget.takeItem(self.PortsListWidget.currentRow())
             self.refreshports()
 
-    def connect_physical_psu(self, _psu_class, _selected_port):
+    def connect_physical_psu(self, _psu_class, _selected_port, verbose=False):
         try:
             physical_psu_instance = _psu_class(_selected_port)
             ready_psu_name = str(physical_psu_instance.name + " / " + physical_psu_instance.MODEL +
@@ -347,14 +383,12 @@ class PsuInitWindow(QMainWindow):
             self.refreshports()
             return ready_psu_name
 
-        except IOError as e:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText(str(e))
-            msg.setStandardButtons(QMessageBox.Close)
-            msg.exec()
-            # logger.warning(e)
-            raise e
+        except (IOError, RuntimeError) as e:
+            if verbose:
+                print(e)
+                self.popup_message(str(e))
+            else:
+                raise e
 
     def disconnect_physical_psu(self):
         for selected in self.AvailablePSUsWidget.selectedItems():
@@ -388,9 +422,6 @@ class PsuInitWindow(QMainWindow):
             _vgs_settings = self._settings.value("Vgs physical PSU objects")
             _vds_settings = self._settings.value("Vds physical PSU objects")
 
-            # for key in self._settings.allKeys():
-            #     print(key, self._settings.value(key))
-
             for psu, settings in (("Vgs PSU", _vgs_settings), ("Vds PSU", _vds_settings)):
                 if settings is None or settings[0][0] == "Empty PSU":
                     self.PSUdict[psu] = VirtualPSU([EmptyPSU()])
@@ -402,7 +433,17 @@ class PsuInitWindow(QMainWindow):
                                 self.VgsPSUsListWidget.addItem(ready_psu_name)
                             else:
                                 self.VdsPSUsListWidget.addItem(ready_psu_name)
-                        except IOError:
+                        except IOError as e:
+                            print(e)
+                            msg = QMessageBox()
+                            msg.setIcon(QMessageBox.Warning)
+                            msg.setInformativeText(str(e) + "\n\nWill start with EMPTY PSU\n\n"
+                                                            "Press RESET to clear the stored startup settings\n\n"
+                                                            "               or\n\nPress OK to continue \n")
+                            msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Reset)
+                            response = msg.exec()
+                            if response == QMessageBox.Reset:
+                                self._settings.clear()
                             self.PSUdict[psu] = VirtualPSU([EmptyPSU()])
                     self.create_virtual_psus()
 
@@ -420,7 +461,6 @@ class PsuInitWindow(QMainWindow):
 
             self.connect_sensor(self._settings.value("Temperature Sensor").strip().split("\n")[0],
                                 self._settings.value("Temperature Sensor").strip().split("\n")[-1])
-
 
         except(KeyError, TypeError):
             # logger.exception("Key error in applysettings method of StartupSettings class")
@@ -455,3 +495,10 @@ class PsuInitWindow(QMainWindow):
         self._settings.setValue("Pmax", self.PSUdict["DUT settings"].DUTMaxPSpinbox.value())
 
         self._settings.setValue("Temperature Sensor", (self.sensorConnectedPlaceholder.text()))
+
+    def popup_message(self, text):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setInformativeText(text)
+        msg.setStandardButtons(QMessageBox.Close)
+        msg.exec()

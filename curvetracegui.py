@@ -90,7 +90,7 @@ class MainWindow(QMainWindow):
 
         self.psuVgsbutton = PsuButtonBox(self.PSUdict, "Vgs PSU")
         self.layouttopcentermiddleH.addWidget(self.psuVgsbutton)
-        self.psuVgsbutton.PsuButtonPressed.connect(lambda x: self.openpsuwindow())
+        self.psuVgsbutton.PsuButtonPressed.connect(self.PsuSetupWin.show)
 
         self.layouttopcentermiddleH.addStretch()
 
@@ -106,7 +106,7 @@ class MainWindow(QMainWindow):
 
         self.psuVdsbutton = PsuButtonBox(self.PSUdict, "Vds PSU")
         self.layouttopcentermiddleH.addWidget(self.psuVdsbutton)
-        self.psuVdsbutton.PsuButtonPressed.connect(lambda x: self.openpsuwindow())
+        self.psuVdsbutton.PsuButtonPressed.connect(self.PsuSetupWin.show)
         # top center middle end
 
         # top center bottom start
@@ -169,13 +169,16 @@ class MainWindow(QMainWindow):
     def savecurves(self):
         print("pressed")
 
-    def openpsuwindow(self):
-        self.PsuSetupWin.show()
-
     def test(self):
         self.starttracing()
 
     def test2(self):
+        self.end_temp()
+        return
+
+        self.PSUdict["Vds PSU"].setvoltage(3)
+        #
+
         print(self.PsuSetupWin.PsusLabel.text())
         try:
             print("tracing thread " + str(self.tracing_thread.isRunning()))
@@ -204,7 +207,7 @@ class MainWindow(QMainWindow):
             self.tracing_thread.finished.connect(self.tracing_thread.deleteLater)
 
             self.tracing_worker.finished.connect(self.getdata)
-            self.tracing_worker.finished.connect(self.temperature_thread.requestInterruption)
+            self.tracing_worker.finished.connect(self.end_temp)
             self.tracing_worker.finished.connect(lambda x: self.freeze(False))
             self.tracing_worker.finished.connect(self.tracing_thread.quit)
             self.tracing_worker.finished.connect(self.tracing_worker.deleteLater)
@@ -225,20 +228,27 @@ class MainWindow(QMainWindow):
             msg.setStandardButtons(QMessageBox.Ok)
             msg.exec()
 
+    def end_temp(self):
+        self.temperature_thread.requestInterruption()
+
     def start_temperature_sensor(self):
-        self.temperature_thread = QThread()
-        self.temperature_worker = temperaturemonitor.TemperatureWorker(self.PSUdict["Temperature Sensor"])
-        self.temperature_worker.moveToThread(self.temperature_thread)
+        if self.PSUdict["Temperature Sensor"] is None:
+            self.temperature_stable["status"] = True
+            self.dut_widgets.TemperatureIndicator.setText("0")
+        else:
+            self.temperature_thread = QThread()
+            self.temperature_worker = temperaturemonitor.TemperatureWorker(self.PSUdict["Temperature Sensor"])
+            self.temperature_worker.moveToThread(self.temperature_thread)
 
-        self.temperature_thread.started.connect(self.temperature_worker.start_temp_controller)
-        self.temperature_thread.finished.connect(self.temperature_thread.deleteLater)
-        self.temperature_worker.finished.connect(self.temperature_thread.quit)
-        self.temperature_worker.finished.connect(self.temperature_worker.deleteLater)
+            self.temperature_thread.started.connect(self.temperature_worker.start_temp_controller)
+            self.temperature_thread.finished.connect(self.temperature_thread.deleteLater)
+            self.temperature_worker.finished.connect(self.temperature_thread.quit)
+            self.temperature_worker.finished.connect(self.temperature_worker.deleteLater)
 
-        self.temperature_worker.temperature_data.connect(lambda x: self.dut_widgets.TemperatureIndicator.setText(str(x)))
-        self.temperature_worker.temp_stable.connect(self.temperature_drift)
+            self.temperature_worker.temperature_data.connect(lambda x: self.dut_widgets.TemperatureIndicator.setText(str(x)))
+            self.temperature_worker.temp_stable.connect(self.temperature_drift)
 
-        self.temperature_thread.start()
+            self.temperature_thread.start()
 
     def temperature_drift(self, status: bool):
         self.temperature_stable["status"] = status

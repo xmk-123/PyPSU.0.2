@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QDoubleSpinBox, QHBoxLayout, QLabel, QWidget, QVBoxL
 import logging
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(levelname)s (%(name)s): %(message)s')
@@ -34,7 +34,7 @@ class VirtualPSU(QWidget):
                 self.VRESSETCNT = 0
 
             self.IMAX = min([i.IMAX for i in self.physical_psu_objects_list])
-            self.IOFFSETMAX = max([i.IMAXwidget for i in self.physical_psu_objects_list])
+            self.IOFFSETMAX = max([i.IOFFSETMAX for i in self.physical_psu_objects_list])
             self.IRESSET = max([i.IRESSET for i in self.physical_psu_objects_list])
             if self.IRESSET < 1:
                 self.IRESSETCNT = len(str(self.IRESSET).split(".")[1])
@@ -42,13 +42,15 @@ class VirtualPSU(QWidget):
                 self.IRESSETCNT = 0
 
             self.VRESSETCNTMAX = max([i.VRESSETCNT for i in self.physical_psu_objects_list])    # max _voltage resolution of physical psu s
-
             self.INDEX_OF_PPSU_VRESSETCNTMAX = ([i.VRESSETCNT for i in self.physical_psu_objects_list].index(self.VRESSETCNTMAX))   # physical psu with max resolution
-            self.VMAXLIST = [i.VMAX for i in self.physical_psu_objects_list]
-            self._PCT_DISTRIBUTION = [i * 100 / sum(self.VMAXLIST) for i in self.VMAXLIST]
+
+            self._VMAXLIST = [i.VMAX for i in self.physical_psu_objects_list]
+            self._PCT_DISTRIBUTION_LIST = [i / sum(self._VMAXLIST) for i in self._VMAXLIST]  # list of percentage of voltage eacu psu will carry
+
             self.IRESSETCNTMAX = min([i.IRESSETCNT for i in self.physical_psu_objects_list])  # min current resolution of physical psu s
             self.PMAX = sum([i.PMAX for i in self.physical_psu_objects_list])
             self.name = "\n".join([str(count + 1) + ")" + n.name for count, n in enumerate(self.physical_psu_objects_list)])
+
         else:
             self.VMIN = self.physical_psu_objects_list[0].VMIN
             self.VMAX = self.physical_psu_objects_list[0].VMAX
@@ -88,6 +90,14 @@ class VirtualPSU(QWidget):
 
             self.disablespinbxs(_physical_psu_objects_list[0].name == "Empty PSU")
 
+        logger.info('\n' +
+                    'VRESSETCNTMAX = ' + str(self.VRESSETCNT) + '\n' +
+                    'VMIN = ' + str(self.VMIN) + '\n' +
+                    'VMAX = ' + str(self.VMAX) + '\n' +
+                    'IMAX = ' + str(self.IMAX) + '\n' +
+                    'PMAX = ' + str(self.PMAX) + '\n' +
+                    'NAME = ' + self.name + '\n')
+
     def Vstartconditions(self, value):
         if value > self.VENDwidget.widgetSpinbox.value():
             self.VENDwidget.widgetSpinbox.setValue(self.VSTARTwidget.widgetSpinbox.value())
@@ -102,8 +112,8 @@ class VirtualPSU(QWidget):
 
     def setvoltage(self, _voltage):
         if self._multiple_physical_PSUs:
-            if (_voltage <= self.VMAX) and (_voltage >= self.VMIN):
-                _voltage_list = [i * _voltage for i in self._PCT_DISTRIBUTION]    # split _voltage according to max _voltage of each physical psu
+            if self.VMIN <= _voltage <= self.VMAX:
+                _voltage_list = [i * _voltage for i in self._PCT_DISTRIBUTION_LIST]    # split _voltage according to max _voltage of each physical psu
                 fractional = 0
                 for count, v in enumerate(_voltage_list):
                     if count == self.INDEX_OF_PPSU_VRESSETCNTMAX:   # skip the psu with the highest resolution
@@ -150,15 +160,16 @@ class VirtualPSU(QWidget):
         if self._multiple_physical_PSUs:
             if n < 1:
                 raise RuntimeError('Number of consistent readings in a row must be larger than 1!')
-            vsum = 0
+            vsum, vv, ii = 0.0, 0.0, 0.0
+
             i = []
             limt = []
 
             for p in self.physical_psu_objects_list:
-                vv, ii, ll = p.physical_psu_readings()
-                vsum += vv
-                i.append(ii)
-                limt.append(ll)
+                readings = p.physical_psu_readings()
+                vsum += readings["voltage"]
+                i.append(readings["current"])
+                limt.append(readings["mode"])
             if "CC" in limt:
                 ll = "CC"
             else:
@@ -166,7 +177,7 @@ class VirtualPSU(QWidget):
             if not all(current - self.IOFFSETMAX <= i[0] <= current + self.IOFFSETMAX for current in i):
                 logger.error("Unequal current readings between chained PSUs")
             ii = i[0]
-            return vsum, ii, ll
+            return dict(zip(("voltage", "current", "mode"), (vsum, ii, ll)))
         else:
             return self.physical_psu_objects_list[0].physical_psu_readings(n)
 

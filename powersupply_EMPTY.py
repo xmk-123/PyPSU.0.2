@@ -17,10 +17,11 @@ class EmptyPSU:
         self.name = "Empty PSU"
         self.MODEL = "Empty"
 
-    def setvoltage(_Vgs, x=None):
+    def setvoltage(self, x=None):
         pass
 
-    def setcurrent(_Vgs, x=None):
+    def setcurrent(self, x=None):
         pass
+
     def output(self, enable: bool):
         pass

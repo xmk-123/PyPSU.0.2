@@ -56,6 +56,7 @@ class Worker(QObject):
                     return
                 self.SetVoltageAndCheckStableTemp(self._VdsPSU, _Vds)
                 _readVds = self._VdsPSU.read(3)
+                print(_readVds)
                 self._data[_i][1].append(self._VdsPSU.polarity * _readVds["voltage"])
                 self._data[_i][2].append(self._VdsPSU.polarity * _readVds["current"])
                 self._data[_i][3].append(self._VdsPSU.polarity * _readVds["mode"])

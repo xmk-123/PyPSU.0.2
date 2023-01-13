@@ -87,12 +87,13 @@ class KORAD:
             self.READIDLETIME = self.MAXSETTLETIME / 50
             self.polarity = True
 
-            logger.info('\n' +
-                        'VRESSETCNTMAX = ' + str(self.VRESSETCNT) + '\n' +
-                        'VMIN = ' + str(self.VMIN) + '\n' +
-                        'VMAX = ' + str(self.VMAX) + '\n' +
-                        'IMAX = ' + str(self.IMAX) + '\n' +
-                        'PMAX = ' + str(self.PMAX) + '\n')
+            if debug:
+                logger.info('\n' +
+                            'VRESSETCNTMAX = ' + str(self.VRESSETCNT) + '\n' +
+                            'VMIN = ' + str(self.VMIN) + '\n' +
+                            'VMAX = ' + str(self.VMAX) + '\n' +
+                            'IMAX = ' + str(self.IMAX) + '\n' +
+                            'PMAX = ' + str(self.PMAX) + '\n')
 
         except serial.SerialTimeoutException:
             raise RuntimeError('No KORAD powersupply connected to ' + port)
@@ -212,7 +213,8 @@ class KORAD:
                 logger.warning(': Could not get ' + str(n) + ' consistent readings in a row after ' + str(
                     self.MAXSETTLETIME) + ' s! DUT drifting? Noise?')
                 break
-        return dict(zip(keys, (v, i, mode)))
+        return {"voltage": float(v), "current": float(i), "mode": mode}
+        return dict(zip(("voltage", "current", "mode"), (v, i, mode)))
 
     def __del__(self):
         try:
