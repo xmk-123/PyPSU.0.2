@@ -12,6 +12,7 @@ class PlotWin(QWidget):
         self.plotline = []
         self.curves = []
         self.plot = 0
+        self.i = -1
 
         _plotlaywout = QVBoxLayout()
 
@@ -30,11 +31,16 @@ class PlotWin(QWidget):
         self.i += 1
         self.plotline = self.curves[self.i]
 
+    # def plotdata(self, data):
+    #     self.reset()
+    #     for c in data:
+    #         self.plotline = self.graphWidget.plot(c[1], c[2], pen=self.pen)
+    #         self.newcurve(c[0])
     def plotdata(self, data):
         self.reset()
-        for c in data:
-            self.plotline = self.graphWidget.plot(c[1], c[2], pen=self.pen)
-            self.newcurve(c[0])
+        for c in data.keys():
+            self.plotline = self.graphWidget.plot(data[c][0], data[c][1], pen=self.pen)
+            self.newcurve(c)
 
     def plotlimits(self, power, v1, v2, plot):
         self.plot = plot
@@ -46,19 +52,19 @@ class PlotWin(QWidget):
             self.maxPplotline.clear()
             self.maxPplotline.setData()
 
+    def smoothcurves(self, data, smooth):
+        if smooth and len(data) >= 1:
+            sdata = copy.deepcopy(data)
+            for dat in sdata.keys():
+                xnew = np.linspace(min(sdata[dat][0]), max(sdata[dat][0]), 100)
+                spl = make_interp_spline(sdata[dat][0], sdata[dat][1], 3)
+                sdata[dat][1] = spl(xnew)
+                sdata[dat][0] = xnew
+            self.plotdata(sdata)
+        else:
+            self.plotdata(data)
+
     def reset(self):
         self.curves = []
         self.i = -1
         self.graphWidget.clear()
-
-    def smoothcurves(self, data, smooth):
-        if smooth and len(data) >= 1:
-            sdata = copy.deepcopy(data)
-            for dat in sdata:
-                xnew = np.linspace(min(dat[1]), max(dat[1]), 100)
-                spl = make_interp_spline(dat[1], dat[2], 3)
-                dat[2] = spl(xnew)
-                dat[1] = xnew
-            self.plotdata(sdata)
-        else:
-            self.plotdata(data)

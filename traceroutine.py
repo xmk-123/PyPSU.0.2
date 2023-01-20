@@ -4,23 +4,28 @@ from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
 
 class Worker(QObject):
-    plotdata = pyqtSignal(object)
-    newcurve = pyqtSignal(float)
-    finished = pyqtSignal(object)
+    newdata = pyqtSignal(object)
+    finished = pyqtSignal()
 
     def __init__(self, _psudict, temperature_stable):
         super().__init__()
         self._PSUdict = _psudict
+        self._VgsPSU = self._PSUdict["Vgs PSU"]
+        self._VdsPSU = self._PSUdict["Vds PSU"]
         self._MaxP = self._PSUdict["DUT settings"].DUTMaxPSpinbox.value()
         self.temperature_stable = temperature_stable
 
     @pyqtSlot()
     def traceroutine(self):
 
-        self._data = None
+        if self._PSUdict["Heater PSU"].name != "Empty PSU":
+            while not self.temperature_stable["status"]:
+                print("warming up")
 
-        self._VgsPSU = self._PSUdict["Vgs PSU"]
-        self._VdsPSU = self._PSUdict["Vds PSU"]
+                if self.thread().isInterruptionRequested():
+                    print("0000000000000000000")
+                    self.stop()
+                    return
 
         _VgsEND = self._VgsPSU.VENDwidget.widgetSpinbox.value()
         _VdsEND = self._VdsPSU.VENDwidget.widgetSpinbox.value()
@@ -38,51 +43,40 @@ class Worker(QObject):
         _Vgs = self._VgsPSU.VSTARTwidget.widgetSpinbox.value()
         _readVds = self._VdsPSU.read(3)
 
-        _i = 0
         while _Vgs <= _VgsEND:
-            if self._data is None:
-                self._data = [[_Vgs, [0], [0], [""]]]
-            else:
-                self._data.append([_Vgs, [0], [0], [""]])
+            _new_curve = True
 
             if self.thread().isInterruptionRequested():
                 self.stop()
                 return
+
             self.SetVoltageAndCheckStableTemp(self._VgsPSU, _Vgs)
             while _Vds <= _VdsEND:
                 self._VdsPSU.setcurrent(min(_IdsMAX, self._MaxP / _Vds))
+
                 if self.thread().isInterruptionRequested():
                     self.stop()
                     return
+
                 self.SetVoltageAndCheckStableTemp(self._VdsPSU, _Vds)
-                _readVds = self._VdsPSU.read(3)
-                print(_readVds)
-                self._data[_i][1].append(self._VdsPSU.polarity * _readVds["voltage"])
-                self._data[_i][2].append(self._VdsPSU.polarity * _readVds["current"])
-                self._data[_i][3].append(self._VdsPSU.polarity * _readVds["mode"])
-                self.plotdata.emit(self._data)
+                _data = self._VdsPSU.read(3)
+                _data.update({"Vgs": _Vgs, "New curve": _new_curve})
+                if _new_curve:
+                    _new_curve = False
+                self.newdata.emit(_data)
+
                 if _readVds["mode"] == "CC":
                     _VdsEND = _Vds - self._VdsPSU.STEPwidget.widgetSpinbox.value()
                 _Vds += self._VdsPSU.STEPwidget.widgetSpinbox.value()
+
             _Vds = self._VdsPSU.VSTARTwidget.widgetSpinbox.value()
             _Vgs += self._VgsPSU.STEPwidget.widgetSpinbox.value()
-            _i += 1
-
-        self._VdsPSU.enableoutput(False)
-        self._VdsPSU.setvoltage(0)
-        self._VdsPSU.setcurrent(0)
-        if self._VgsPSU.name != "Empty PSU":
-            self._VgsPSU.enableoutput(False)
-            self._VgsPSU.setvoltage(0)
-            self._VgsPSU.setcurrent(0)
-
-        self.finished.emit(self._data)
+        self.stop()
 
     def SetVoltageAndCheckStableTemp(self, _psu, _voltage):
         _psu.setvoltage(_voltage)
         while not self.temperature_stable["status"]:
             if self.thread().isInterruptionRequested():
-                self.stop()
                 return
             print("waiting for temperature to stabilize")
             time.sleep(1)
@@ -95,12 +89,5 @@ class Worker(QObject):
             self._VgsPSU.enableoutput(False)
             self._VgsPSU.setvoltage(0)
             self._VgsPSU.setcurrent(0)
-        print("ZEROED Voltages")
-
-        self.finished.emit(self._data)
-
-
-
-
-
+        self.finished.emit()
 
