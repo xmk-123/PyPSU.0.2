@@ -9,7 +9,7 @@ from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
                              QPushButton, QVBoxLayout, QLabel, QSpinBox, QFrame,
-                             QSizePolicy, QCheckBox, QMenu, QAction, QMessageBox)
+                             QSizePolicy, QCheckBox, QMenu, QAction, QMessageBox, QFileDialog)
 import traceroutine
 from powersupply_EMPTY import EmptyPSU
 from VirtualPSU import VirtualPSU
@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
         # top center top end
         # top center middle start
 
-        self.psuVgsbutton = PsuButtonBox(self.PSUdict, "Vgs PSU")
+        self.psuVgsbutton = PsuButtonBox()
         self.layouttopcentermiddleH.addWidget(self.psuVgsbutton)
         self.psuVgsbutton.PsuButtonPressed.connect(self.PsuSetupWin.show)
 
@@ -121,7 +121,7 @@ class MainWindow(QMainWindow):
 
         self.layouttopcentermiddleH.addStretch()
 
-        self.psuVdsbutton = PsuButtonBox(self.PSUdict, "Vds PSU")
+        self.psuVdsbutton = PsuButtonBox()
         self.layouttopcentermiddleH.addWidget(self.psuVdsbutton)
         self.psuVdsbutton.PsuButtonPressed.connect(self.PsuSetupWin.show)
         # top center middle end
@@ -184,10 +184,16 @@ class MainWindow(QMainWindow):
         self.mainlayout.addWidget(self.plot_area)
 
     def savecurves(self):
-        print("pressed")
+        saveFile = QFileDialog.getSaveFileName()[0]
+        with open(saveFile, 'w') as f:
+            f.write(str(self.data))
 
     def test2(self):
-        self.stop_tracing()
+        loadFile = QFileDialog.getOpenFileName()[0]
+        with open(loadFile, mode='r') as file:
+            lines = file.read()
+            d = eval(lines)
+
 
     def call_start_tracing(self):
         if time.time() - self.start_tracing_last_call > 3:
@@ -236,24 +242,22 @@ class MainWindow(QMainWindow):
         self.start_tracing_last_call = time.time()
 
     def tracing_end(self):
-        # print(str(self.data).replace("]],", "]],\n"))
-        # print("tracinng emmited finished")
+        print(str(self.data).replace("]],", "]],\n"))
         self.stop_button.setDisabled(True)
         self.freeze(False)
         if self.PSUdict["Temperature Sensor"] is not None:
             self.temperature_thread.requestInterruption()
-            # while self.temperature_thread.isRunning():
-            #     print("waiting temperature_thread to end***********")
-            #     time.sleep(1)
         self.start_tracing_button.setDisabled(False)
 
     def new_data_received(self, new_data):
-        if new_data["New curve"]:
+        if str(new_data["Vgs"]) not in self.data.keys():
             self.data.update({str(new_data["Vgs"]): [[0], [0], [""]]})
 
         self.data[str(new_data["Vgs"])][0].append(self.PSUdict["Vds PSU"].polarity * new_data["voltage"])
         self.data[str(new_data["Vgs"])][1].append(self.PSUdict["Vds PSU"].polarity * new_data["current"])
         self.data[str(new_data["Vgs"])][2].append(self.PSUdict["Vds PSU"].polarity * new_data["mode"])
+
+        self.plot_area.plotdata(self.data)
 
         # power = new_data["voltage"] * new_data["current"]
         # power_delta = self.last_power - power
@@ -263,8 +267,8 @@ class MainWindow(QMainWindow):
         #     self.update_pid_last_output.emit(adjust_heater_volts)
         #     # print("last power : " + str(self.last_power) + "    power : " + str(power) + "  delta : " + str(power_delta) + "  adjust V : " + str(adjust_heater_volts))
         #     self.last_power = power
-
-        self.plot_area.plotdata(self.data)
+        # else:
+        #     self.temperature_stable["status"] = True
 
     def start_temperature_controller(self):
         if self.PSUdict["Temperature Sensor"] is None:
@@ -272,10 +276,10 @@ class MainWindow(QMainWindow):
             self.dut_widgets.TemperatureIndicator.setText("N/A")
         else:
             self.temperature_thread = QThread()
-            self.temperature_worker = TemperatureWorker(self.PSUdict["Heater PSU"], self.dut_widgets.TempSpinbox.value())
+            self.temperature_worker = TemperatureWorker(self.PSUdict, self.dut_widgets.TempSpinbox.value())
             self.temperature_worker.moveToThread(self.temperature_thread)
 
-            self.update_pid_last_output.connect(lambda x: self.temperature_worker.pid_set_last_output(x))
+            self.update_pid_last_output.connect(self.temperature_worker.update_pid)
 
             self.temperature_thread.started.connect(self.temperature_worker.start_temp_controller)
             self.temperature_thread.finished.connect(self.temperature_thread.deleteLater)
@@ -338,50 +342,50 @@ class MainWindow(QMainWindow):
 
 
 class PsuButtonBox(QWidget):
-    PsuButtonPressed = pyqtSignal(str)
 
-    def __init__(self, psu_dict, psu_key):
+    PsuButtonPressed = pyqtSignal()
+
+    def __init__(self):
         super().__init__()
-        self.psuKey = psu_key
         _layout = QVBoxLayout()
         self.button = QPushButton()
-        self.set_polarity(psu_dict[psu_key].polarity)
+        self.set_polarity(True)
         self.button.setMinimumSize(150, 65)
         _layout.addWidget(self.button)
-        self.button.clicked.connect(lambda a: self.PsuButtonPressed.emit(psu_key))
+        self.button.clicked.connect(self.PsuButtonPressed.emit)
         self.setLayout(_layout)
 
     def set_polarity(self, value):
         if value:
             stylesheet = "QWidget {background-color: QLinearGradient(y1:0, y2:1, stop: 0.49 red, stop: 0.51 dimgrey)}"
             self.button.setStyleSheet(stylesheet)
-            self.button.setText("+                  +\n" + self.psuKey + "\n-                 -")
+            self.button.setText("+                  +\nPSU\n-                 -")
         else:
             stylesheet = "QWidget {background-color: QLinearGradient(y1:0, y2:1, stop: 0.49 dimgrey, stop: 0.51 red)}"
             self.button.setStyleSheet(stylesheet)
-            self.button.setText("-                  -\n" + self.psuKey + "\n+                 +")
+            self.button.setText("-                  -\nPSU\n+                 +")
 
 
 class DutSet(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.dutset_layout = QHBoxLayout()
-        self.setLayout(self.dutset_layout)
+        _dutset_layout = QHBoxLayout()
+        self.setLayout(_dutset_layout)
 
-        self.TemperatureLabel = QLabel("Temp Now")
-        self.TemperatureLabel.setMinimumSize(110, 50)
-        self.dutset_layout.addWidget(self.TemperatureLabel)
+        _TemperatureLabel = QLabel("Temp Now")
+        _TemperatureLabel.setMinimumSize(110, 50)
+        _dutset_layout.addWidget(_TemperatureLabel)
 
         self.TemperatureIndicator = QLabel("N/A")
         self.TemperatureIndicator.setMinimumSize(110, 50)
-        self.dutset_layout.addWidget(self.TemperatureIndicator)
+        _dutset_layout.addWidget(self.TemperatureIndicator)
 
-        self.dutset_layout.addStretch()
+        _dutset_layout.addStretch()
 
-        self.TempLabel = QLabel("Set Temp")
-        self.TempLabel.setMinimumSize(80, 50)
-        self.dutset_layout.addWidget(self.TempLabel)
+        _TempLabel = QLabel("Set Temp")
+        _TempLabel.setMinimumSize(80, 50)
+        _dutset_layout.addWidget(_TempLabel)
 
         # self.layout.addStretch()
         self.TempSpinbox = QSpinBox()
@@ -390,13 +394,13 @@ class DutSet(QWidget):
         self.TempSpinbox.setMinimum(0)
         self.TempSpinbox.setMaximum(100)
 
-        self.dutset_layout.addWidget(self.TempSpinbox)
+        _dutset_layout.addWidget(self.TempSpinbox)
 
-        self.dutset_layout.addStretch()
+        _dutset_layout.addStretch()
 
-        self.DUTMaxPLabel = QLabel("Max Power")
-        self.DUTMaxPLabel.setMinimumSize(150, 50)
-        self.dutset_layout.addWidget(self.DUTMaxPLabel)
+        _DUTMaxPLabel = QLabel("Max Power")
+        _DUTMaxPLabel.setMinimumSize(150, 50)
+        _dutset_layout.addWidget(_DUTMaxPLabel)
 
         # self.layout.addStretch()
         self.DUTMaxPSpinbox = QSpinBox()
@@ -404,7 +408,7 @@ class DutSet(QWidget):
         self.DUTMaxPSpinbox.setMaximumSize(130, 50)
         self.DUTMaxPSpinbox.setMinimum(0)
         self.DUTMaxPSpinbox.setMaximum(300)
-        self.dutset_layout.addWidget(self.DUTMaxPSpinbox)
+        _dutset_layout.addWidget(self.DUTMaxPSpinbox)
 
 
 app = QApplication(sys.argv)

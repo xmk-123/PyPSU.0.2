@@ -76,6 +76,12 @@ class TemperatureWorker(QObject):
             self.temperature_stable = status
             self.temp_stable.emit(status)
 
+    def update_pid(self, voltage):
+        self.poller.stop()
+        self.heater_pid.pid_set_last_output(voltage)
+        self.poller.start(self.refreshtime)
+
+
     def end_temperature_controller(self):
         self.poller.stop()
         print("poller stopped from temperaturemonitor // poller active = " + str(self.poller.isActive()))

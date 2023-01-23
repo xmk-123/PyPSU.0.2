@@ -170,10 +170,13 @@ class VirtualPSU(QWidget):
                 vsum += readings["voltage"]
                 i.append(readings["current"])
                 limt.append(readings["mode"])
-            if "CC" in limt:
-                ll = "CC"
+            if "ERR" in limt:
+                ll = "ERR"
             else:
-                ll = "CV"
+                if "CC" in limt:
+                    ll = "CC"
+                else:
+                    ll = "CV"
             if not all(current - self.IOFFSETMAX <= i[0] <= current + self.IOFFSETMAX for current in i):
                 logger.error("Unequal current readings between chained PSUs")
             ii = i[0]

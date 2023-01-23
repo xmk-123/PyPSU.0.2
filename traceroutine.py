@@ -19,11 +19,10 @@ class Worker(QObject):
     def traceroutine(self):
 
         if self._PSUdict["Heater PSU"].name != "Empty PSU":
+            print("waiting to reach set temperature")
             while not self.temperature_stable["status"]:
-                print("warming up")
 
                 if self.thread().isInterruptionRequested():
-                    print("0000000000000000000")
                     self.stop()
                     return
 
@@ -41,7 +40,8 @@ class Worker(QObject):
             self._VgsPSU.setcurrent(0)
             self._VgsPSU.enableoutput(True)
         _Vgs = self._VgsPSU.VSTARTwidget.widgetSpinbox.value()
-        _readVds = self._VdsPSU.read(3)
+        _readVds = self._read_psu(self._VdsPSU, 3)
+        # _readVds = self._VdsPSU.read(3)
 
         while _Vgs <= _VgsEND:
             _new_curve = True
@@ -59,13 +59,16 @@ class Worker(QObject):
                     return
 
                 self.SetVoltageAndCheckStableTemp(self._VdsPSU, _Vds)
-                _data = self._VdsPSU.read(3)
-                _data.update({"Vgs": _Vgs, "New curve": _new_curve})
+                _data = self._read_psu(self._VdsPSU, 3)
+                # _data = self._VdsPSU.read(3)
+                _data.update({"Vgs": _Vgs})
                 if _new_curve:
                     _new_curve = False
                 self.newdata.emit(_data)
 
-                if _readVds["mode"] == "CC":
+                # if _readVds["mode"] == "CC":
+                if _data["mode"] == "CC":
+                    print("CC")
                     _VdsEND = _Vds - self._VdsPSU.STEPwidget.widgetSpinbox.value()
                 _Vds += self._VdsPSU.STEPwidget.widgetSpinbox.value()
 
@@ -80,6 +83,14 @@ class Worker(QObject):
                 return
             print("waiting for temperature to stabilize")
             time.sleep(1)
+
+    def _read_psu(self, _psu, times):
+        reading = _psu.read(times)
+        while reading["mode"] == "ERR":
+            reading = _psu.read(times)
+            print("Drifting")
+            print(reading)
+        return reading
 
     def stop(self):
         self._VdsPSU.enableoutput(False)

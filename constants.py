@@ -17,7 +17,7 @@ physicalpsusClasses = {"Korad": KORAD,
 
 temperatureSensorsClasses = {"DS18B20": TemperatureSensor}
 
-temperature_allowance = 0.5
+temperature_allowance = 0.1
 
 temperature_matches_for_stable = 1
 

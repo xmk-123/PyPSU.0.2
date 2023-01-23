@@ -10,7 +10,7 @@ class PlotWin(QWidget):
         super().__init__()
 
         self.plotline = []
-        self.curves = []
+        self.curves = {}
         self.plot = 0
         self.i = -1
 
@@ -26,21 +26,13 @@ class PlotWin(QWidget):
         _plotlaywout.addWidget(self.graphWidget)
         self.setLayout(_plotlaywout)
 
-    def newcurve(self, vgs):
-        self.curves.append(self.graphWidget.plot([0], [0], name="Vgs = " + str(vgs)))
-        self.i += 1
-        self.plotline = self.curves[self.i]
+    # def newcurve(self, vgs):
+    #     self.curves[vgs] = self.graphWidget.plot([0], [0], name="Vgs = " + str(vgs))
 
-    # def plotdata(self, data):
-    #     self.reset()
-    #     for c in data:
-    #         self.plotline = self.graphWidget.plot(c[1], c[2], pen=self.pen)
-    #         self.newcurve(c[0])
     def plotdata(self, data):
         self.reset()
         for c in data.keys():
             self.plotline = self.graphWidget.plot(data[c][0], data[c][1], pen=self.pen)
-            self.newcurve(c)
 
     def plotlimits(self, power, v1, v2, plot):
         self.plot = plot

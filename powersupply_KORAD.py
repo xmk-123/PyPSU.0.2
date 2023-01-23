@@ -193,7 +193,6 @@ class KORAD:
     def physical_psu_readings(self, n=0):
         if n < 0:
             raise RuntimeError('Number of consistent readings in a row must be a positive or 0 for no check')
-        keys = ("voltage", "current", "mode")
         t0 = time.time()
         match = 0
 
@@ -210,11 +209,11 @@ class KORAD:
                 time.sleep(self.READIDLETIME)
 
             if time.time() - t0 > self.MAXSETTLETIME:
+                mode = "ERR"
                 logger.warning(': Could not get ' + str(n) + ' consistent readings in a row after ' + str(
                     self.MAXSETTLETIME) + ' s! DUT drifting? Noise?')
                 break
         return {"voltage": float(v), "current": float(i), "mode": mode}
-        return dict(zip(("voltage", "current", "mode"), (v, i, mode)))
 
     def __del__(self):
         try:
