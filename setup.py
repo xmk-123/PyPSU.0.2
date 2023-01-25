@@ -38,15 +38,12 @@ class PsuInitWindow(QMainWindow):
 
     Vgspolaritychanged = pyqtSignal(bool)
     Vdspolaritychanged = pyqtSignal(bool)
-    updateMainWindow = pyqtSignal(bool)
+    updateMainWindow = pyqtSignal()
 
     def __init__(self, psudict):
         super().__init__()
-
         self.PSUdict = psudict
-
         self._settings = QSettings()
-        # self._settings.clear()
 
         self.window = QWidget()
         self.setWindowTitle(" Setup PSU")
@@ -157,7 +154,7 @@ class PsuInitWindow(QMainWindow):
         vgs_polarity = QRadioButton("Source negative")
         _VgsPSUlayout.addWidget(vgs_polarity)
         vgs_polarity.setChecked(self.PSUdict["Vgs PSU"].polarity)
-        vgs_polarity.toggled.connect(lambda s: self.Vgspolaritychanged.emit(s))
+        vgs_polarity.toggled.connect(self.Vgspolaritychanged.emit)
         vgs_polarity2 = QRadioButton("Source positive")
         _VgsPSUlayout.addWidget(vgs_polarity2)
         vgs_polarity2.setChecked(not self.PSUdict["Vgs PSU"].polarity)
@@ -236,7 +233,7 @@ class PsuInitWindow(QMainWindow):
         vds_polarity = QRadioButton("Source negative")
         _polarityVdsPSUlayout.addWidget(vds_polarity)
         vds_polarity.setChecked(self.PSUdict["Vds PSU"].polarity)
-        vds_polarity.toggled.connect(lambda s: self.Vdspolaritychanged.emit(s))
+        vds_polarity.toggled.connect(self.Vdspolaritychanged.emit)
         vds_polarity2 = QRadioButton("Source positive")
         _polarityVdsPSUlayout.addWidget(vds_polarity2)
         vds_polarity2.setChecked(not self.PSUdict["Vds PSU"].polarity)
@@ -415,9 +412,11 @@ class PsuInitWindow(QMainWindow):
                     self.PSUdict[key] = VirtualPSU([AvailablePSUs[name] for name in names])
                 case _:
                     return
-        self.updateMainWindow.emit(True)
+        self.updateMainWindow.emit()
+
 
     def applysettings(self):
+
         try:
             _vgs_settings = self._settings.value("Vgs physical PSU objects")
             _vds_settings = self._settings.value("Vds physical PSU objects")
@@ -448,7 +447,7 @@ class PsuInitWindow(QMainWindow):
                             if response == QMessageBox.Reset:
                                 self._settings.setValue(psu, "Empty PSU")    # .clear()
                             self.PSUdict[psu] = VirtualPSU([EmptyPSU()])
-                    self.create_virtual_psus()
+            self.create_virtual_psus()
 
             self.PSUdict["Vgs PSU"].VSTARTwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU start")))
             self.PSUdict["Vgs PSU"].VENDwidget.widgetSpinbox.setValue(float(self._settings.value("Vgs PSU end")))
@@ -472,8 +471,6 @@ class PsuInitWindow(QMainWindow):
             self.PSUdict["Vds PSU"] = VirtualPSU([EmptyPSU()])
 
     def savesettings(self):
-
-        # self._settings.clear()
 
         vgs_psu_class_names_and_ports = []
         vds_psu_class_names_and_ports = []

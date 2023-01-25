@@ -23,59 +23,78 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        # self.showMaximized()
+        self.data = {}
         self.PSUdict = {"Vgs PSU": VirtualPSU([EmptyPSU()]),
                         "Vds PSU": VirtualPSU([EmptyPSU()]),
                         "Heater PSU": VirtualPSU([EmptyPSU()]),
                         "Temperature Sensor": None}
         self.temperature_stable = {"status": False}
         self.last_power = 0
-        self.running = False
+        self.tracing_running = False
+        self.start_tracing_last_call = time.time()
+
+        self.tabs = QTabWidget()
+        self.traceUI()
+
+        self.tabs.addTab(self.trace_window, "Trace")
+        self.tabs.addTab(self.matchUI(), "Network")
+        self.setCentralWidget(self.tabs)
+
+        # self.showMaximized()
 
         self.PsuSetupWin = PsuInitWindow(self.PSUdict)
-        self.PsuSetupWin.Vgspolaritychanged.connect(lambda s: self.psuVgsbutton.set_polarity(s))
-        self.PsuSetupWin.Vdspolaritychanged.connect(lambda s: self.psuVdsbutton.set_polarity(s))
-        self.PsuSetupWin.updateMainWindow.connect(self.buildui)
 
-        self.data = {}
+        self.menuBar = self.menuBar()
+        file_menu = QMenu("&File", self)
+        self.menuBar.addMenu(file_menu)
 
-        self.buildui()
+        self._savesettingsMenuItem = QAction(QIcon(), '&Save startup Settings', self)
+        self._savesettingsMenuItem.setStatusTip('New document')
+        file_menu.addAction(self._savesettingsMenuItem)
 
-        _menuBar = self.menuBar()
-        file_menu = QMenu("&Menu", self)
-        _menuBar.addMenu(file_menu)
+        self._testMenuItem = QAction(QIcon(), '&Test  ', self)
+        self._testMenuItem.setStatusTip('Test')
+        file_menu.addAction(self._testMenuItem)
 
-        _savesettingsMenuItem = QAction(QIcon(), '&Save startup Settings', self)
-        _savesettingsMenuItem.setStatusTip('New document')
-        _savesettingsMenuItem.triggered.connect(self.PsuSetupWin.savesettings)
+        self.PsuSetupWin.Vdspolaritychanged.connect(self.psuVdsbutton.set_polarity)
+        self.PsuSetupWin.Vgspolaritychanged.connect(self.psuVgsbutton.set_polarity)
+        self.PsuSetupWin.updateTraceTab.connect(self.update_trace_tab)
 
-        file_menu.addAction(_savesettingsMenuItem)
+        self._savesettingsMenuItem.triggered.connect(self.PsuSetupWin.savesettings)
+        self._testMenuItem.triggered.connect(self.test2)
 
-        _testMenuItem = QAction(QIcon(), '&Test  ', self)
-        _testMenuItem.setStatusTip('Test')
-        _testMenuItem.triggered.connect(self.test2)
+        self.psuVgsbutton.PsuButtonPressed.connect(self.PsuSetupWin.show)
+        self.psuVdsbutton.PsuButtonPressed.connect(self.PsuSetupWin.show)
 
-        file_menu.addAction(_testMenuItem)
+        self.start_tracing_button.clicked.connect(self.start_tracing)
+        self.stop_button.clicked.connect(self.stop_tracing)
 
         self.PsuSetupWin.applysettings()
 
-    def buildui(self):
-        
-        self.setWindowTitle("Curvetrace 0.3")
-        self.window = QWidget()
-        self.mainlayout = QVBoxLayout()
-        self.window.setLayout(self.mainlayout)
+    def update_trace_tab(self):
+        self.tabs.removeTab(0)
+        self.tabs.insertTab(0, self.traceUI(), "Trace")
+        self.tabs.setCurrentIndex(0)
 
-        _tabs = QTabWidget()
-        _tabs.addTab(self.window, "Trace")
-        _tabs.addTab(QPushButton(), "Match")
-        # _tabs.addTab(self.PsuSetupWin, "Setup")
-        self.setCentralWidget(_tabs)
+    def matchUI(self):
+        """Create the Network page UI."""
+        networkTab = QWidget()
+        layout = QVBoxLayout()
+        layout.addWidget(QCheckBox("Network Option 1"))
+        layout.addWidget(QCheckBox("Network Option 2"))
+        networkTab.setLayout(layout)
+        return networkTab
 
-        _layouttopH = QHBoxLayout()
-        _layoutbottomV = QVBoxLayout()
+    def traceUI(self):
 
-        _layouttopcenterV = QVBoxLayout()
+        self.trace_window = QWidget()
+        self.tracelayout = QVBoxLayout()
+        self.trace_window.setLayout(self.tracelayout)
+
+        self.layouttopH = QHBoxLayout()
+        self.layoutbottomV = QVBoxLayout()
+
+        self.layouttopcenterV = QVBoxLayout()
 
         self.layouttopcentertopH = QHBoxLayout()
         self.layouttopcentermiddleH = QHBoxLayout()
@@ -83,7 +102,7 @@ class MainWindow(QMainWindow):
 
         self.layoutbottomH = QHBoxLayout()
 
-    # top center pane start
+        # top center pane start
 
         self.PsuVgsLabel = QLabel(self.PSUdict["Vgs PSU"].name)
         self.PsuVgsLabel.setMinimumSize(110, 50)
@@ -100,14 +119,13 @@ class MainWindow(QMainWindow):
 
         self.psuVgsbutton = PsuButtonBox()
         self.layouttopcentermiddleH.addWidget(self.psuVgsbutton)
-        self.psuVgsbutton.PsuButtonPressed.connect(self.PsuSetupWin.show)
 
         self.layouttopcentermiddleH.addStretch()
 
         self.start_tracing_button = QPushButton()
         self.start_tracing_button.setObjectName("start_tracing_button")
         self.start_tracing_button.setMinimumSize(150, 150)
-        self.start_tracing_button.clicked.connect(self.start_tracing)
+
         self.start_tracing_button.setIcon(QIcon('Nmos.png'))
 
         self.start_tracing_button.setIconSize(QtCore.QSize(130, 130))
@@ -116,7 +134,7 @@ class MainWindow(QMainWindow):
         self.stop_button = QPushButton()
         self.stop_button.setObjectName("stop_tracing_button")
         self.stop_button.setMinimumSize(150, 150)
-        self.stop_button.clicked.connect(self.stop_tracing)
+
         self.stop_button.setIcon(QIcon('stop-sign.png'))
         self.stop_button.setDisabled(True)
 
@@ -127,7 +145,7 @@ class MainWindow(QMainWindow):
 
         self.psuVdsbutton = PsuButtonBox()
         self.layouttopcentermiddleH.addWidget(self.psuVdsbutton)
-        self.psuVdsbutton.PsuButtonPressed.connect(self.PsuSetupWin.show)
+
         # top center middle end
 
         # top center bottom start
@@ -135,57 +153,56 @@ class MainWindow(QMainWindow):
         self.layouttopcenterbottomH.addWidget(self.dut_widgets)
         self.PSUdict["DUT settings"] = self.dut_widgets
         # top center bottom end
-    # top center pane end
+        # top center pane end
 
-    # bottom start
+        # bottom start
         self.plot_area = PlotWin()
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         separator.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         separator.setLineWidth(3)
 
-        _layoutbottomV.addWidget(separator)
+        self.layoutbottomV.addWidget(separator)
 
         self.smoothcurveCheckB = QCheckBox("Smooth Curves")
-        self.smoothcurveCheckB.toggled.connect(lambda x: self.plot_area.smoothcurves(self.data, x))
+
         self.layoutbottomH.addWidget(self.smoothcurveCheckB)
 
         self.plotlimitsCheckB = QCheckBox("Plot Power lim")
-        self.plotlimitsCheckB.toggled.connect(lambda x: self.plot_area.plotlimits(self.dut_widgets.DUTMaxPSpinbox.value(),
-                                                                                  self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.value(),
-                                                                                  self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.value(),
-                                                                                  x))
+
         self.layoutbottomH.addWidget(self.plotlimitsCheckB)
 
         self.savecurvesB = QPushButton("Save")
         self.savecurvesB.setMinimumSize(130, 50)
         self.savecurvesB.setMaximumSize(130, 50)
-        self.savecurvesB.pressed.connect(self.savecurves)
+
         self.layoutbottomH.addWidget(self.savecurvesB)
-    # bottom end
+        # bottom end
 
-        _layouttopH.addWidget(self.PSUdict["Vgs PSU"].PSUwindow)
-        _layouttopH.addStretch()
+        self.layouttopH.addWidget(self.PSUdict["Vgs PSU"].PSUwindow)
+        self.layouttopH.addStretch()
 
-        _layouttopcenterV.addLayout(self.layouttopcentertopH)
-        _layouttopcenterV.addLayout(self.layouttopcentermiddleH)
-        _layouttopcenterV.addLayout(self.layouttopcenterbottomH)
+        self.layouttopcenterV.addLayout(self.layouttopcentertopH)
+        self.layouttopcenterV.addLayout(self.layouttopcentermiddleH)
+        self.layouttopcenterV.addLayout(self.layouttopcenterbottomH)
 
-        _layouttopH.addLayout(_layouttopcenterV, 0)
+        self.layouttopH.addLayout(self.layouttopcenterV, 0)
 
-        _layouttopH.addStretch()
-        _layouttopH.addWidget(self.PSUdict["Vds PSU"].PSUwindow)
+        self.layouttopH.addStretch()
+        self.layouttopH.addWidget(self.PSUdict["Vds PSU"].PSUwindow)
 
-        self.mainlayout.addLayout(_layouttopH, 0)
+        self.tracelayout.addLayout(self.layouttopH, 0)
 
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         # separator.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         separator.setLineWidth(3)
 
-        self.mainlayout.addWidget(separator)
-        self.mainlayout.addLayout(self.layoutbottomH)
-        self.mainlayout.addWidget(self.plot_area)
+        self.tracelayout.addWidget(separator)
+        self.tracelayout.addLayout(self.layoutbottomH)
+        self.tracelayout.addWidget(self.plot_area)
+
+        return self.trace_window
 
     def savecurves(self):
         saveFile = QFileDialog.getSaveFileName()[0]
@@ -234,6 +251,8 @@ class MainWindow(QMainWindow):
             msg.setDetailedText("In the case that only 1 PSU will be used, it must be the Vds PSU not the Vgs")
             msg.setStandardButtons(QMessageBox.Ok)
             msg.exec()
+
+        self.start_tracing_last_call = time.time()
 
     def tracing_end(self):
         print(str(self.data).replace("]],", "]],\n"))
