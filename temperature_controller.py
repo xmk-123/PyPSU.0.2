@@ -26,7 +26,6 @@ class TemperatureWorker(QObject):
         else:
             self.heater_present = False
 
-    @pyqtSlot()
     def start_temp_controller(self):
         self.temperature_stable = False
         self.temp_stable.emit(False)
@@ -77,10 +76,10 @@ class TemperatureWorker(QObject):
             self.temp_stable.emit(status)
 
     def update_pid(self, voltage):
+        print("Updating pid last V : " + str(voltage))
         self.poller.stop()
         self.heater_pid.pid_set_last_output(voltage)
         self.poller.start(self.refreshtime)
-
 
     def end_temperature_controller(self):
         self.poller.stop()

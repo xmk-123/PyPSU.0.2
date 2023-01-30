@@ -14,13 +14,14 @@ class HeaterPID:
         self.heater_PSU.setcurrent(self.heater_max_current)
         self.heater_PSU.enableoutput(True)
 
-        self.pid = PID(Kp=10, Ki=1.0, Kd=0.0, setpoint=target_temperature, auto_mode=False)
+        self.pid = PID(Kp=15.7, Ki=0.058, Kd=0.0, setpoint=target_temperature, auto_mode=False)
         self.pid_max_output = min(self.heater_max_voltage, self.heater_PSU.VMAX * 0.9)
         self.pid.output_limits = (0, self.pid_max_output)
         self.pid.sample_time = sample_time  # seconds
 
         self.last_temperature_reading = 0
         self.last_heater_voltage = 0
+
 
         self.pid.set_auto_mode(True)
 

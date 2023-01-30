@@ -2,14 +2,15 @@ from math import sqrt, copysign
 import sys
 import time
 
-from PyQt5.QtCore import pyqtSignal, QThread
+from PyQt5.QtCore import pyqtSignal, QThread, pyqtSlot
+from match_win import MatchWindow
 from plot import PlotWin
 from setup import PsuInitWindow
 from PyQt5 import QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
                              QPushButton, QVBoxLayout, QLabel, QSpinBox, QFrame,
-                             QSizePolicy, QCheckBox, QMenu, QAction, QMessageBox, QFileDialog, QTabWidget)
+                             QSizePolicy, QCheckBox, QMenu, QAction, QMessageBox, QFileDialog, QTabWidget, qApp)
 import traceroutine
 from powersupply_EMPTY import EmptyPSU
 from VirtualPSU import VirtualPSU
@@ -23,6 +24,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+
         # self.showMaximized()
         self.PSUdict = {"Vgs PSU": VirtualPSU([EmptyPSU()]),
                         "Vds PSU": VirtualPSU([EmptyPSU()]),
@@ -38,7 +40,7 @@ class MainWindow(QMainWindow):
         self.PsuSetupWin.updateMainWindow.connect(self.buildui)
 
         self.data = {}
-
+        self.match_w = MatchWindow()
         self.buildui()
 
         _menuBar = self.menuBar()
@@ -63,12 +65,12 @@ class MainWindow(QMainWindow):
         
         self.setWindowTitle("Curvetrace 0.3")
         self.window = QWidget()
-        self.mainlayout = QVBoxLayout()
-        self.window.setLayout(self.mainlayout)
+        _mainlayout = QVBoxLayout()
+        self.window.setLayout(_mainlayout)
 
         _tabs = QTabWidget()
         _tabs.addTab(self.window, "Trace")
-        _tabs.addTab(QPushButton(), "Match")
+        _tabs.addTab(self.match_w, "Match")
         # _tabs.addTab(self.PsuSetupWin, "Setup")
         self.setCentralWidget(_tabs)
 
@@ -77,32 +79,32 @@ class MainWindow(QMainWindow):
 
         _layouttopcenterV = QVBoxLayout()
 
-        self.layouttopcentertopH = QHBoxLayout()
-        self.layouttopcentermiddleH = QHBoxLayout()
-        self.layouttopcenterbottomH = QHBoxLayout()
+        _layouttopcentertopH = QHBoxLayout()
+        _layouttopcentermiddleH = QHBoxLayout()
+        _layouttopcenterbottomH = QHBoxLayout()
 
-        self.layoutbottomH = QHBoxLayout()
+        _layoutbottomH = QHBoxLayout()
 
     # top center pane start
 
         self.PsuVgsLabel = QLabel(self.PSUdict["Vgs PSU"].name)
         self.PsuVgsLabel.setMinimumSize(110, 50)
-        self.layouttopcentertopH.addWidget(self.PsuVgsLabel)
+        _layouttopcentertopH.addWidget(self.PsuVgsLabel)
 
-        self.layouttopcentertopH.addStretch()
+        _layouttopcentertopH.addStretch()
 
         self.PsuVdsLabel = QLabel(self.PSUdict["Vds PSU"].name)
         self.PsuVdsLabel.setMinimumSize(110, 50)
-        self.layouttopcentertopH.addWidget(self.PsuVdsLabel)
+        _layouttopcentertopH.addWidget(self.PsuVdsLabel)
 
         # top center top end
         # top center middle start
 
         self.psuVgsbutton = PsuButtonBox()
-        self.layouttopcentermiddleH.addWidget(self.psuVgsbutton)
+        _layouttopcentermiddleH.addWidget(self.psuVgsbutton)
         self.psuVgsbutton.PsuButtonPressed.connect(self.PsuSetupWin.show)
 
-        self.layouttopcentermiddleH.addStretch()
+        _layouttopcentermiddleH.addStretch()
 
         self.start_tracing_button = QPushButton()
         self.start_tracing_button.setObjectName("start_tracing_button")
@@ -111,7 +113,7 @@ class MainWindow(QMainWindow):
         self.start_tracing_button.setIcon(QIcon('Nmos.png'))
 
         self.start_tracing_button.setIconSize(QtCore.QSize(130, 130))
-        self.layouttopcentermiddleH.addWidget(self.start_tracing_button)
+        _layouttopcentermiddleH.addWidget(self.start_tracing_button)
 
         self.stop_button = QPushButton()
         self.stop_button.setObjectName("stop_tracing_button")
@@ -121,18 +123,18 @@ class MainWindow(QMainWindow):
         self.stop_button.setDisabled(True)
 
         self.stop_button.setIconSize(QtCore.QSize(130, 130))
-        self.layouttopcentermiddleH.addWidget(self.stop_button)
+        _layouttopcentermiddleH.addWidget(self.stop_button)
 
-        self.layouttopcentermiddleH.addStretch()
+        _layouttopcentermiddleH.addStretch()
 
         self.psuVdsbutton = PsuButtonBox()
-        self.layouttopcentermiddleH.addWidget(self.psuVdsbutton)
+        _layouttopcentermiddleH.addWidget(self.psuVdsbutton)
         self.psuVdsbutton.PsuButtonPressed.connect(self.PsuSetupWin.show)
         # top center middle end
 
         # top center bottom start
         self.dut_widgets = DutSet()
-        self.layouttopcenterbottomH.addWidget(self.dut_widgets)
+        _layouttopcenterbottomH.addWidget(self.dut_widgets)
         self.PSUdict["DUT settings"] = self.dut_widgets
         # top center bottom end
     # top center pane end
@@ -148,44 +150,44 @@ class MainWindow(QMainWindow):
 
         self.smoothcurveCheckB = QCheckBox("Smooth Curves")
         self.smoothcurveCheckB.toggled.connect(lambda x: self.plot_area.smoothcurves(self.data, x))
-        self.layoutbottomH.addWidget(self.smoothcurveCheckB)
+        _layoutbottomH.addWidget(self.smoothcurveCheckB)
 
         self.plotlimitsCheckB = QCheckBox("Plot Power lim")
         self.plotlimitsCheckB.toggled.connect(lambda x: self.plot_area.plotlimits(self.dut_widgets.DUTMaxPSpinbox.value(),
                                                                                   self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.value(),
                                                                                   self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.value(),
                                                                                   x))
-        self.layoutbottomH.addWidget(self.plotlimitsCheckB)
+        _layoutbottomH.addWidget(self.plotlimitsCheckB)
 
         self.savecurvesB = QPushButton("Save")
         self.savecurvesB.setMinimumSize(130, 50)
         self.savecurvesB.setMaximumSize(130, 50)
         self.savecurvesB.pressed.connect(self.savecurves)
-        self.layoutbottomH.addWidget(self.savecurvesB)
+        _layoutbottomH.addWidget(self.savecurvesB)
     # bottom end
 
         _layouttopH.addWidget(self.PSUdict["Vgs PSU"].PSUwindow)
         _layouttopH.addStretch()
 
-        _layouttopcenterV.addLayout(self.layouttopcentertopH)
-        _layouttopcenterV.addLayout(self.layouttopcentermiddleH)
-        _layouttopcenterV.addLayout(self.layouttopcenterbottomH)
+        _layouttopcenterV.addLayout(_layouttopcentertopH)
+        _layouttopcenterV.addLayout(_layouttopcentermiddleH)
+        _layouttopcenterV.addLayout(_layouttopcenterbottomH)
 
         _layouttopH.addLayout(_layouttopcenterV, 0)
 
         _layouttopH.addStretch()
         _layouttopH.addWidget(self.PSUdict["Vds PSU"].PSUwindow)
 
-        self.mainlayout.addLayout(_layouttopH, 0)
+        _mainlayout.addLayout(_layouttopH, 0)
 
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         # separator.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         separator.setLineWidth(3)
 
-        self.mainlayout.addWidget(separator)
-        self.mainlayout.addLayout(self.layoutbottomH)
-        self.mainlayout.addWidget(self.plot_area)
+        _mainlayout.addWidget(separator)
+        _mainlayout.addLayout(_layoutbottomH)
+        _mainlayout.addWidget(self.plot_area)
 
     def savecurves(self):
         saveFile = QFileDialog.getSaveFileName()[0]
@@ -193,6 +195,8 @@ class MainWindow(QMainWindow):
             f.write(str(self.data))
 
     def test2(self):
+        self.update_pid_last_output.emit(5)
+        return
         loadFile = QFileDialog.getOpenFileName()[0]
         with open(loadFile, mode='r') as file:
             lines = file.read()
@@ -220,7 +224,7 @@ class MainWindow(QMainWindow):
             self.tracing_worker.finished.connect(self.tracing_worker.deleteLater)
 
             self.tracing_worker.newdata.connect(lambda x: self.new_data_received(x))
-
+            # qApp.aboutToQuit.connect(self.tracing_thread.quit)
             self.tracing_thread.start()
 
         else:
@@ -244,6 +248,7 @@ class MainWindow(QMainWindow):
         self.start_tracing_button.setDisabled(False)
 
     def new_data_received(self, new_data):
+        print(new_data)
         if str(new_data["Vgs"]) not in self.data.keys():
             self.data.update({str(new_data["Vgs"]): [[0], [0], [""]]})
 
@@ -253,16 +258,17 @@ class MainWindow(QMainWindow):
 
         self.plot_area.plotdata(self.data)
 
-        # power = new_data["voltage"] * new_data["current"]
-        # power_delta = self.last_power - power
-        # if abs(power_delta) > 0.5:
-        #     self.temperature_stable["status"] = False
-        #     adjust_heater_volts = copysign(sqrt(abs(power_delta) * heater_resistance), -1 * power_delta)
-        #     self.update_pid_last_output.emit(adjust_heater_volts)
-        #     # print("last power : " + str(self.last_power) + "    power : " + str(power) + "  delta : " + str(power_delta) + "  adjust V : " + str(adjust_heater_volts))
-        #     self.last_power = power
-        # else:
-        #     self.temperature_stable["status"] = True
+        if self.PSUdict["Heater PSU"] != "Empty PSU":
+            power = new_data["voltage"] * new_data["current"]
+            power_delta = self.last_power - power
+            if abs(power_delta) > 0.5:
+                self.temperature_stable["status"] = False
+                adjust_heater_volts = copysign(sqrt(abs(power_delta) * heater_resistance), power_delta)
+                self.update_pid_last_output.emit(adjust_heater_volts)
+                # print("last power : " + str(self.last_power) + "    power : " + str(power) + "  delta : " + str(power_delta) + "  adjust V : " + str(adjust_heater_volts))
+                self.last_power = power
+            else:
+                self.temperature_stable["status"] = True
 
     def start_temperature_controller(self):
         if self.PSUdict["Temperature Sensor"] is None:
@@ -273,8 +279,6 @@ class MainWindow(QMainWindow):
             self.temperature_worker = TemperatureWorker(self.PSUdict, self.dut_widgets.TempSpinbox.value())
             self.temperature_worker.moveToThread(self.temperature_thread)
 
-            self.update_pid_last_output.connect(self.temperature_worker.update_pid)
-
             self.temperature_thread.started.connect(self.temperature_worker.start_temp_controller)
             self.temperature_thread.finished.connect(self.temperature_thread.deleteLater)
             self.temperature_worker.finished.connect(self.temperature_thread.quit)
@@ -282,6 +286,8 @@ class MainWindow(QMainWindow):
 
             self.temperature_worker.temperature_data.connect(lambda x: self.dut_widgets.TemperatureIndicator.setText(str(x)))
             self.temperature_worker.temp_stable.connect(lambda x: self.temperature_stable.update({"status": x}))
+
+            self.update_pid_last_output.connect(self.temperature_worker.update_pid)
 
             self.temperature_thread.start()
 

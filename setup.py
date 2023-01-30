@@ -414,7 +414,6 @@ class PsuInitWindow(QMainWindow):
                     return
         self.updateMainWindow.emit()
 
-
     def applysettings(self):
 
         try:
@@ -445,6 +444,12 @@ class PsuInitWindow(QMainWindow):
                             msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Reset)
                             response = msg.exec()
                             if response == QMessageBox.Reset:
+                                if psu == "Vgs PSU":
+                                    self._settings.setValue("Vgs physical PSU objects", ["Empty PSU", 'None'])
+                                elif psu == "Vds PSU":
+                                    self._settings.setValue("Vds physical PSU objects", ["Empty PSU", 'None'])
+                                elif psu == "Heater PSU":
+                                    self._settings.setValue("Heater physical PSU objects", ["Empty PSU", 'None'])
                                 self._settings.setValue(psu, "Empty PSU")    # .clear()
                             self.PSUdict[psu] = VirtualPSU([EmptyPSU()])
             self.create_virtual_psus()
@@ -465,10 +470,16 @@ class PsuInitWindow(QMainWindow):
             self.connect_sensor(self._settings.value("Temperature Sensor").strip().split("\n")[0],
                                 self._settings.value("Temperature Sensor").strip().split("\n")[-1])
 
-        except(KeyError, TypeError):
+        except(KeyError, TypeError, ValueError) as e:
             # logger.exception("Key error in applysettings method of StartupSettings class")
             self.PSUdict["Vgs PSU"] = VirtualPSU([EmptyPSU()])
             self.PSUdict["Vds PSU"] = VirtualPSU([EmptyPSU()])
+            self.PSUdict["Heater PSU"] = VirtualPSU([EmptyPSU()])
+            print(e)
+
+        except BaseException as e:
+            self._settings.clear()
+            print(e)
 
     def savesettings(self):
 

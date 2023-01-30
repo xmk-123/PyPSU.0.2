@@ -75,9 +75,9 @@ class VirtualPSU(QWidget):
             self._PSUlayout = QVBoxLayout()
             self.PSUwindow.setLayout(self._PSUlayout)
             self.polarity = True
-            self.VSTARTwidget = ParameterWidget("Start V", max(self.VMIN, self.VRESSET), self.VMAX, self.VRESSET, self.VRESSETCNT)
-            self.VENDwidget = ParameterWidget("End V", max(self.VMIN, self.VRESSET), self.VMAX, self.VRESSET, self.VRESSETCNT)
-            self.STEPwidget = ParameterWidget("Step V", self.VRESSET, self.VMAX, self.VRESSET, self.VRESSETCNT)
+            self.VSTARTwidget = ParameterWidget("Start V", max(self.VMIN, self.VRESSET), self.VMAX, 1, self.VRESSETCNT)
+            self.VENDwidget = ParameterWidget("End V", max(self.VMIN, self.VRESSET), self.VMAX, 1, self.VRESSETCNT)
+            self.STEPwidget = ParameterWidget("Step V", self.VRESSET, self.VMAX, 1, self.VRESSETCNT)
             self.IMAXwidget = ParameterWidget("Max I", 0, self.IMAX, self.IRESSET, self.IRESSETCNT)
 
             self._PSUlayout.addWidget(self.VSTARTwidget)

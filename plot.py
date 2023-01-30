@@ -11,8 +11,6 @@ class PlotWin(QWidget):
 
         self.plotline = []
         self.curves = {}
-        self.plot = 0
-        self.i = -1
 
         _plotlaywout = QVBoxLayout()
 
@@ -29,14 +27,14 @@ class PlotWin(QWidget):
     # def newcurve(self, vgs):
     #     self.curves[vgs] = self.graphWidget.plot([0], [0], name="Vgs = " + str(vgs))
 
-    def plotdata(self, data):
-        self.reset()
+    def plotdata(self, data, clear=True):
+        if clear:
+            self.reset()
         for c in data.keys():
-            self.plotline = self.graphWidget.plot(data[c][0], data[c][1], pen=self.pen)
+            self.plotline = self.graphWidget.plot(data[c][0], data[c][1], pen=self.pen, symbol='o', name=c)
 
-    def plotlimits(self, power, v1, v2, plot):
-        self.plot = plot
-        if self.plot:
+    def plotlimits(self, power, v1, v2, plot_true):
+        if plot_true:
             x = np.linspace(int(v1), int(v2), 10)
             y = power / x
             self.maxPplotline = self.graphWidget.plot(x, y, pen=self.pen)
@@ -58,5 +56,4 @@ class PlotWin(QWidget):
 
     def reset(self):
         self.curves = []
-        self.i = -1
         self.graphWidget.clear()

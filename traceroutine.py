@@ -15,13 +15,11 @@ class Worker(QObject):
         self._MaxP = self._PSUdict["DUT settings"].DUTMaxPSpinbox.value()
         self.temperature_stable = temperature_stable
 
-    @pyqtSlot()
     def traceroutine(self):
 
         if self._PSUdict["Heater PSU"].name != "Empty PSU":
             print("waiting to reach set temperature")
             while not self.temperature_stable["status"]:
-
                 if self.thread().isInterruptionRequested():
                     self.stop()
                     return
@@ -74,6 +72,7 @@ class Worker(QObject):
 
             _Vds = self._VdsPSU.VSTARTwidget.widgetSpinbox.value()
             _Vgs += self._VgsPSU.STEPwidget.widgetSpinbox.value()
+            print(_Vds, _Vgs)
         self.stop()
 
     def SetVoltageAndCheckStableTemp(self, _psu, _voltage):
