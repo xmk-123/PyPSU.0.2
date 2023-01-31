@@ -343,6 +343,7 @@ class PsuInitWindow(QMainWindow):
     def disconnect_sensor(self):
         if len(self.sensorConnectedPlaceholder.text()) > 0:
             usedports.remove(self.sensorConnectedPlaceholder.text().strip().split("\n")[-1])
+            # self.sensorConnectedPlaceholder.text().strip().split("\n")[-1].close()
             self.PSUdict["Temperature Sensor"] = None
             self.sensorConnectedPlaceholder.setText("")
             self.refreshports()

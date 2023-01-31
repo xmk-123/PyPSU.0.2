@@ -258,17 +258,17 @@ class MainWindow(QMainWindow):
 
         self.plot_area.plotdata(self.data)
 
-        if self.PSUdict["Heater PSU"] != "Empty PSU":
-            power = new_data["voltage"] * new_data["current"]
-            power_delta = self.last_power - power
-            if abs(power_delta) > 0.5:
-                self.temperature_stable["status"] = False
-                adjust_heater_volts = copysign(sqrt(abs(power_delta) * heater_resistance), power_delta)
-                self.update_pid_last_output.emit(adjust_heater_volts)
-                # print("last power : " + str(self.last_power) + "    power : " + str(power) + "  delta : " + str(power_delta) + "  adjust V : " + str(adjust_heater_volts))
-                self.last_power = power
-            else:
-                self.temperature_stable["status"] = True
+        # if self.PSUdict["Heater PSU"] != "Empty PSU":
+        #     power = new_data["voltage"] * new_data["current"]
+        #     power_delta = self.last_power - power
+        #     if abs(power_delta) > 0.5:
+        #         self.temperature_stable["status"] = False
+        #         adjust_heater_volts = copysign(sqrt(abs(power_delta) * heater_resistance), power_delta)
+        #         self.update_pid_last_output.emit(adjust_heater_volts)
+        #         # print("last power : " + str(self.last_power) + "    power : " + str(power) + "  delta : " + str(power_delta) + "  adjust V : " + str(adjust_heater_volts))
+        #         self.last_power = power
+        #     else:
+        #         self.temperature_stable["status"] = True
 
     def start_temperature_controller(self):
         if self.PSUdict["Temperature Sensor"] is None:
@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
             self.temperature_worker.temperature_data.connect(lambda x: self.dut_widgets.TemperatureIndicator.setText(str(x)))
             self.temperature_worker.temp_stable.connect(lambda x: self.temperature_stable.update({"status": x}))
 
-            self.update_pid_last_output.connect(self.temperature_worker.update_pid)
+            # self.update_pid_last_output.connect(self.temperature_worker.update_pid)
 
             self.temperature_thread.start()
 

@@ -12,6 +12,7 @@ class TemperatureWorker(QObject):
 
     def __init__(self, _psudict, target_temperature):
         super().__init__()
+        print("Temperature Controller**********************************************")
         self.sensor = _psudict["Temperature Sensor"]
         self.poller = QTimer(self)
         self.match = 0

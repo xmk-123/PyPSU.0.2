@@ -42,13 +42,12 @@ class Worker(QObject):
         # _readVds = self._VdsPSU.read(3)
 
         while _Vgs <= _VgsEND:
-            _new_curve = True
 
             if self.thread().isInterruptionRequested():
                 self.stop()
                 return
 
-            self.SetVoltageAndCheckStableTemp(self._VgsPSU, _Vgs)
+            self.CheckStableTempandSetVoltage(self._VgsPSU, _Vgs)
             while _Vds <= _VdsEND:
                 self._VdsPSU.setcurrent(min(_IdsMAX, self._MaxP / _Vds))
 
@@ -56,15 +55,13 @@ class Worker(QObject):
                     self.stop()
                     return
 
-                self.SetVoltageAndCheckStableTemp(self._VdsPSU, _Vds)
+                self._VgsPSU.setvoltage(_Vgs)
+                self.CheckStableTempandSetVoltage(self._VdsPSU, _Vds)
                 _data = self._read_psu(self._VdsPSU, 3)
-                # _data = self._VdsPSU.read(3)
+
                 _data.update({"Vgs": _Vgs})
-                if _new_curve:
-                    _new_curve = False
                 self.newdata.emit(_data)
 
-                # if _readVds["mode"] == "CC":
                 if _data["mode"] == "CC":
                     print("CC")
                     _VdsEND = _Vds - self._VdsPSU.STEPwidget.widgetSpinbox.value()
@@ -75,13 +72,14 @@ class Worker(QObject):
             print(_Vds, _Vgs)
         self.stop()
 
-    def SetVoltageAndCheckStableTemp(self, _psu, _voltage):
-        _psu.setvoltage(_voltage)
+    def CheckStableTempandSetVoltage(self, _psu, _voltage):
         while not self.temperature_stable["status"]:
+            self._VgsPSU.setvoltage(0)
             if self.thread().isInterruptionRequested():
                 return
-            print("waiting for temperature to stabilize")
+            print("waiting for temperature to stabilize***")
             time.sleep(1)
+        _psu.setvoltage(_voltage)
 
     def _read_psu(self, _psu, times):
         reading = _psu.read(times)

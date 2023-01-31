@@ -22,7 +22,6 @@ class HeaterPID:
         self.last_temperature_reading = 0
         self.last_heater_voltage = 0
 
-
         self.pid.set_auto_mode(True)
 
     def sensor_temp(self, temperature):
