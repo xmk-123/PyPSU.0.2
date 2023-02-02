@@ -4,6 +4,9 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from scipy.interpolate import make_interp_spline
 import copy
 
+# colors = ["\033[0;30m", "\033[0;31m", "\033[0;32m", "\033[0;33m", "\033[0;34m", "\033[0;35m", "\033[0;36m", "\033[0;37m", "\033[1;30m", "\033[1;33m"]
+
+
 
 class PlotWin(QWidget):
     def __init__(self):
@@ -11,6 +14,8 @@ class PlotWin(QWidget):
 
         self.plotline = []
         self.curves = {}
+        self.plot_text = ""
+        self.count = 0
 
         _plotlaywout = QVBoxLayout()
 
@@ -24,14 +29,22 @@ class PlotWin(QWidget):
         _plotlaywout.addWidget(self.graphWidget)
         self.setLayout(_plotlaywout)
 
-    # def newcurve(self, vgs):
-    #     self.curves[vgs] = self.graphWidget.plot([0], [0], name="Vgs = " + str(vgs))
-
-    def plotdata(self, data, clear=True):
+    def plotdata(self, data, clear=True, dut_name=None, colorchoise="bl"):
         if clear:
             self.reset()
-        for c in data.keys():
-            self.plotline = self.graphWidget.plot(data[c][0], data[c][1], pen=self.pen, symbol='o', name=c)
+        for vgs in data.keys():
+            self.pen = pg.mkPen(color=colorchoise, width=3)
+            self.plotline = self.graphWidget.plot(data[vgs][0], data[vgs][1], pen=self.pen, symbol='o', name=vgs)
+        text1 = pg.TextItem(text=dut_name, color=colorchoise)
+        text1.setPos(0, self.count)
+        self.count -= 0.2
+        print(0, self.count)
+        self.graphWidget.addItem(text1)
+
+        # self.plot_text += dut_name + "\n"
+        # text1 = pg.TextItem(text=self.plot_text, color=colorchoise)
+        # # text1 = pg.TextItem(text=dut_name, color=colorchoise)
+        # self.graphWidget.addItem(text1)
 
     def plotlimits(self, power, v1, v2, plot_true):
         if plot_true:
@@ -56,4 +69,6 @@ class PlotWin(QWidget):
 
     def reset(self):
         self.curves = []
+        self.plot_text = ""
+        self.count = 0
         self.graphWidget.clear()

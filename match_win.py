@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QWidget, QPushButton, QListWidget, QVBoxLayout, QHBoxLayout, QFileDialog
+from PyQt5.QtWidgets import QWidget, QPushButton, QListWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel
 
 from plot import PlotWin
 
@@ -10,11 +10,15 @@ class MatchWindow(QWidget):
         super().__init__()
 
         self.curves = {}
+        self.colors = ["b", "r", "g", "c", "m", "y", "k"]
+        self.color_count = 0
+
         match_layout = QVBoxLayout()
         horiz1_layout = QHBoxLayout()
         ver1_layout = QVBoxLayout()
 
         self.curves_list_lstwidget = QListWidget()
+        self.curves_list_lstwidget.setFixedHeight(200)
         self.curves_list_lstwidget.setSelectionMode(QListWidget.MultiSelection)
         self.curves_list_lstwidget.itemSelectionChanged.connect(self.plot_curves)
         horiz1_layout.addWidget(self.curves_list_lstwidget)
@@ -33,19 +37,28 @@ class MatchWindow(QWidget):
 
         self.setLayout(match_layout)
 
+    def color_pick(self):
+        if self.color_count >= len(self.colors):
+            self.color_count = 0
+            print(self.color_count)
+        colorchoise = self.colors[self.color_count]
+        self.color_count += 1
+        return colorchoise
+
     def load_curve(self):
-        load_file = QFileDialog.getOpenFileName()[0]
-        with open(load_file, mode='r') as file:
-            lines = file.read()
-            d = eval(lines)
-            self.curves[load_file] = d
-            self.curves_list_lstwidget.addItem(load_file)
-            self.plot_curves()
+        file_list = QFileDialog.getOpenFileNames()[0]
+        for load_file in file_list:
+            with open(load_file, mode='r') as file:
+                lines = file.read()
+                color = self.color_pick()
+                self.curves[load_file] = [eval(lines), color]
+                self.curves_list_lstwidget.addItem(load_file)
+                self.plot_curves()
 
     def plot_curves(self):
         self.match_plot_area.reset()
-        for c in self.curves_list_lstwidget.selectedItems():
-            self.match_plot_area.plotdata(self.curves[c.text()], False)
+        for dut in self.curves_list_lstwidget.selectedItems():
+            self.match_plot_area.plotdata(self.curves[dut.text()][0], False, dut.text(), self.curves[dut.text()][1])
 
     def delete_curve(self):
         for selected in self.curves_list_lstwidget.selectedItems():
