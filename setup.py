@@ -256,7 +256,6 @@ class PsuInitWindow(QMainWindow):
 
         _3rddhorizlayout.addWidget(separator_3)
 
-
         _HeaterPSUlayout = QVBoxLayout()
 
         self.HeaterPSULabel = QLabel("In use by Heater")

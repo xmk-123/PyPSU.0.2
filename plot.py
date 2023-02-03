@@ -29,7 +29,7 @@ class PlotWin(QWidget):
         _plotlaywout.addWidget(self.graphWidget)
         self.setLayout(_plotlaywout)
 
-    def plotdata(self, data, clear=True, dut_name=None, colorchoise="bl"):
+    def plotdata(self, data, clear=True, dut_name=None, colorchoise="b"):
         if clear:
             self.reset()
         for vgs in data.keys():
@@ -37,8 +37,7 @@ class PlotWin(QWidget):
             self.plotline = self.graphWidget.plot(data[vgs][0], data[vgs][1], pen=self.pen, symbol='o', name=vgs)
         text1 = pg.TextItem(text=dut_name, color=colorchoise)
         text1.setPos(0, self.count)
-        self.count -= 0.2
-        print(0, self.count)
+        self.count -= 0.1
         self.graphWidget.addItem(text1)
 
         # self.plot_text += dut_name + "\n"

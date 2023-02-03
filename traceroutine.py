@@ -69,7 +69,6 @@ class Worker(QObject):
 
             _Vds = self._VdsPSU.VSTARTwidget.widgetSpinbox.value()
             _Vgs += self._VgsPSU.STEPwidget.widgetSpinbox.value()
-            print(_Vds, _Vgs)
         self.stop()
 
     def CheckStableTempandSetVoltage(self, _psu, _voltage):

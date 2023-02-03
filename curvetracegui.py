@@ -240,7 +240,7 @@ class MainWindow(QMainWindow):
             msg.exec()
 
     def tracing_end(self):
-        print(str(self.data).replace("]],", "]],\n"))
+        # print(str(self.data).replace("]],", "]],\n"))
         self.stop_button.setDisabled(True)
         self.freeze(False)
         if self.PSUdict["Temperature Sensor"] is not None:
@@ -248,7 +248,6 @@ class MainWindow(QMainWindow):
         self.start_tracing_button.setDisabled(False)
 
     def new_data_received(self, new_data):
-        print(new_data)
         if str(new_data["Vgs"]) not in self.data.keys():
             self.data.update({str(new_data["Vgs"]): [[0], [0], [""]]})
 
