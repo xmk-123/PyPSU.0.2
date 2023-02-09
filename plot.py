@@ -4,9 +4,6 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from scipy.interpolate import make_interp_spline
 import copy
 
-# colors = ["\033[0;30m", "\033[0;31m", "\033[0;32m", "\033[0;33m", "\033[0;34m", "\033[0;35m", "\033[0;36m", "\033[0;37m", "\033[1;30m", "\033[1;33m"]
-
-
 
 class PlotWin(QWidget):
     def __init__(self):
@@ -30,6 +27,7 @@ class PlotWin(QWidget):
         self.setLayout(_plotlaywout)
 
     def plotdata(self, data, clear=True, dut_name=None, colorchoise="b"):
+        print(data)
         if clear:
             self.reset()
         for vgs in data.keys():
@@ -39,11 +37,6 @@ class PlotWin(QWidget):
         text1.setPos(0, self.count)
         self.count -= 0.1
         self.graphWidget.addItem(text1)
-
-        # self.plot_text += dut_name + "\n"
-        # text1 = pg.TextItem(text=self.plot_text, color=colorchoise)
-        # # text1 = pg.TextItem(text=dut_name, color=colorchoise)
-        # self.graphWidget.addItem(text1)
 
     def plotlimits(self, power, v1, v2, plot_true):
         if plot_true:

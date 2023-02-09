@@ -3,19 +3,14 @@ powersupply_KORAD.py
 baud rate for each physical psu model . Now is set to 19200
 serial exclusive set to True
 
-close main window to close psu window
-
 MaxpwrSpinbox.setMaximum(100) check that psu can accomodate max DUI setting power
 
 moosfet pic remove polarity
 
-turn powersupply OFF when app closes even from top menu x
-
 DONE curvtracePSU check that VRESSET of parent class is not 0 or neg
 
-on end traceroutine it emits finished
-slot in main calls lambda x: self.freeze(False)
-in case of empty psu should not unfreeze it
+
+
 
 variables:
 *****************************************************

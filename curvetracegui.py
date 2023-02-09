@@ -1,8 +1,7 @@
-from math import sqrt, copysign
 import sys
 import time
 
-from PyQt5.QtCore import pyqtSignal, QThread, pyqtSlot
+from PyQt5.QtCore import pyqtSignal, QThread
 from match_win import MatchWindow
 from plot import PlotWin
 from setup import PsuInitWindow
@@ -14,8 +13,9 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget,
 import traceroutine
 from powersupply_EMPTY import EmptyPSU
 from VirtualPSU import VirtualPSU
-from constants import heater_resistance
 from temperature_controller import TemperatureWorker
+
+ask_to_save = True
 
 
 class MainWindow(QMainWindow):
@@ -31,8 +31,8 @@ class MainWindow(QMainWindow):
                         "Heater PSU": VirtualPSU([EmptyPSU()]),
                         "Temperature Sensor": None}
         self.temperature_stable = {"status": False}
-        self.last_power = 0
-        self.running = False
+        self.last_saved = True
+        self.ask_to_save = True
 
         self.PsuSetupWin = PsuInitWindow(self.PSUdict)
         self.PsuSetupWin.Vgspolaritychanged.connect(lambda s: self.psuVgsbutton.set_polarity(s))
@@ -48,18 +48,23 @@ class MainWindow(QMainWindow):
         _menuBar.addMenu(file_menu)
 
         _savesettingsMenuItem = QAction(QIcon(), '&Save startup Settings', self)
-        _savesettingsMenuItem.setStatusTip('New document')
+        # _savesettingsMenuItem.setStatusTip('New document')
         _savesettingsMenuItem.triggered.connect(self.PsuSetupWin.savesettings)
-
         file_menu.addAction(_savesettingsMenuItem)
 
-        _testMenuItem = QAction(QIcon(), '&Test  ', self)
-        _testMenuItem.setStatusTip('Test')
-        _testMenuItem.triggered.connect(self.test2)
+        _clearsettingsMenuItem = QAction(QIcon(), '&Clear startup Settings', self)
+        # _clearsettingsMenuItem.setStatusTip('New document')
+        _clearsettingsMenuItem.triggered.connect(lambda: self.PsuSetupWin.settings.clear())
+        file_menu.addAction(_clearsettingsMenuItem)
 
-        file_menu.addAction(_testMenuItem)
+        _resetasktosave = QAction(QIcon(), '&Reset save last trace warning', self)
+        _resetasktosave.triggered.connect(self.reset_ask_to_save)
+        file_menu.addAction(_resetasktosave)
 
         self.PsuSetupWin.applysettings()
+
+    def reset_ask_to_save(self):
+        self.ask_to_save = True
 
     def buildui(self):
         
@@ -71,7 +76,6 @@ class MainWindow(QMainWindow):
         _tabs = QTabWidget()
         _tabs.addTab(self.window, "Trace")
         _tabs.addTab(self.match_w, "Match")
-        # _tabs.addTab(self.PsuSetupWin, "Setup")
         self.setCentralWidget(_tabs)
 
         _layouttopH = QHBoxLayout()
@@ -193,20 +197,28 @@ class MainWindow(QMainWindow):
         saveFile = QFileDialog.getSaveFileName()[0]
         with open(saveFile, 'w') as f:
             f.write(str(self.data))
-
-    def test2(self):
-        self.update_pid_last_output.emit(5)
-        return
-        loadFile = QFileDialog.getOpenFileName()[0]
-        with open(loadFile, mode='r') as file:
-            lines = file.read()
-            d = eval(lines)
+        self.last_saved = True
 
     def start_tracing(self):
         if self.PSUdict["Vds PSU"].name != "Empty PSU":
+            if not self.last_saved and self.ask_to_save:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Information)
+
+                msg.setText("Last trace has not been saved")
+                msg.setInformativeText("Data will be lost. Want to proceed?")
+                msg.setWindowTitle("Last trace has not been saved")
+                msg.setDetailedText("")
+                msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+                cb = QCheckBox("Don't ask again.")
+                msg.setCheckBox(cb)
+                _response = msg.exec()
+                self.ask_to_save = not cb.isChecked()
+                if _response == QMessageBox.Cancel:
+                    return
             self.start_tracing_button.setDisabled(True)
             self.stop_button.setDisabled(False)
-            # Check if data saved and pop up message if not***************************************************
+            self.last_saved = False
             self.start_temperature_controller()
             self.freeze(True)
             self.plot_area.reset()
@@ -224,14 +236,11 @@ class MainWindow(QMainWindow):
             self.tracing_worker.finished.connect(self.tracing_worker.deleteLater)
 
             self.tracing_worker.newdata.connect(lambda x: self.new_data_received(x))
-            # qApp.aboutToQuit.connect(self.tracing_thread.quit)
             self.tracing_thread.start()
 
         else:
-
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
-
             msg.setText("No PSU for Vds has been setup")
             msg.setInformativeText("Press on one of the PSU buttons - red/gray buttons- to setup the PSU")
             msg.setWindowTitle("Vds missing")
@@ -257,18 +266,6 @@ class MainWindow(QMainWindow):
 
         self.plot_area.plotdata(self.data)
 
-        # if self.PSUdict["Heater PSU"] != "Empty PSU":
-        #     power = new_data["voltage"] * new_data["current"]
-        #     power_delta = self.last_power - power
-        #     if abs(power_delta) > 0.5:
-        #         self.temperature_stable["status"] = False
-        #         adjust_heater_volts = copysign(sqrt(abs(power_delta) * heater_resistance), power_delta)
-        #         self.update_pid_last_output.emit(adjust_heater_volts)
-        #         # print("last power : " + str(self.last_power) + "    power : " + str(power) + "  delta : " + str(power_delta) + "  adjust V : " + str(adjust_heater_volts))
-        #         self.last_power = power
-        #     else:
-        #         self.temperature_stable["status"] = True
-
     def start_temperature_controller(self):
         if self.PSUdict["Temperature Sensor"] is None:
             self.temperature_stable["status"] = True
@@ -285,8 +282,6 @@ class MainWindow(QMainWindow):
 
             self.temperature_worker.temperature_data.connect(lambda x: self.dut_widgets.TemperatureIndicator.setText(str(x)))
             self.temperature_worker.temp_stable.connect(lambda x: self.temperature_stable.update({"status": x}))
-
-            # self.update_pid_last_output.connect(self.temperature_worker.update_pid)
 
             self.temperature_thread.start()
 

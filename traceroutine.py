@@ -39,7 +39,6 @@ class Worker(QObject):
             self._VgsPSU.enableoutput(True)
         _Vgs = self._VgsPSU.VSTARTwidget.widgetSpinbox.value()
         _readVds = self._read_psu(self._VdsPSU, 3)
-        # _readVds = self._VdsPSU.read(3)
 
         while _Vgs <= _VgsEND:
 

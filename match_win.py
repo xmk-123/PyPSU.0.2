@@ -258,33 +258,6 @@ class MatchWindow(QWidget):
                         base_vgs) + " had matching Vds up to " + str(base_data[0][-1]) + "V \n"
                     self.qtfy_mine_message.setText(message)
 
-                # new_base_data = [[], []]
-                # new_comp_data = [[], []]
-                # for (base_vds, base_id) in zip(base_data[0], base_data[1]):
-                #     for (comp_vds, comp_id) in zip(comp_data[0], comp_data[1]):
-                #         print(base_vds, comp_vds)
-                #         print(base_vds == comp_vds)
-                #         if base_vds == comp_vds:
-                #             new_base_data[0].append(base_vds)
-                #             new_base_data[1].append(base_id)
-                #             new_comp_data[0].append(comp_vds)
-                #             new_comp_data[1].append(comp_id)
-                #             break
-                #         elif base_vds < comp_vds:
-                #             msg = QMessageBox()
-                #             msg.setIcon(QMessageBox.Information)
-                #             msg.setText("Devices' curves have different Vds")
-                #             msg.setInformativeText("")
-                #             msg.setWindowTitle("Error Vds data mismatch")
-                #             msg.setDetailedText("")
-                #             msg.setStandardButtons(QMessageBox.Ok)
-                #             msg.exec()
-                #             return "error"
-                # base_data = new_base_data
-                # comp_data = new_comp_data
-                # message = self.qtfy_mine_message.text() + "Curves for Vgs=" + str(base_vgs) + " had matching Vds up to " + str(base_data[0][-1]) + "V \n"
-                # self.qtfy_mine_message.setText(message)
-
             for (a, b) in zip(base_data[1], comp_data[1]):
                 diff += abs(a - b)
         return diff

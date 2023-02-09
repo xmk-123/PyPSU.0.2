@@ -87,3 +87,5 @@ class TemperatureWorker(QObject):
         if self.heater_present:
             self.heater_pid.turn_off()
         self.finished.emit()
+
+

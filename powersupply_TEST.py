@@ -1,3 +1,5 @@
+import time
+
 
 class TestPSU:
     name = "Test psu"
@@ -10,8 +12,8 @@ class TestPSU:
         self.VMIN = 0
         self.VMAX = 100
         self.IMAX = 10
-        self.VRESSET = 1
-        self.VRESSETCNT = 0  # len(str(self.VRESSET).split(".")[1])
+        self.VRESSET = 0.1
+        self.VRESSETCNT = 1  # len(str(self.VRESSET).split(".")[1])
         self.IRESSET = 1
         self.IRESSETCNT = 0  # len(str(self.IRESSET).split(".")[1])
         self.PMAX = 300
@@ -39,6 +41,7 @@ class TestPSU:
         self.current = current
 
     def physical_psu_readings(self, n=0, vgs=1):
+        time.sleep(0.1)
         if self.port == "Test_Vgs_Port":
             return {"voltage": TestPSU.Vgs, "current": 0, "mode": "CV"}
         elif self.port == "Test_Vds_Port":

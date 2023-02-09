@@ -6,7 +6,7 @@ from digitemp.master import UART_Adapter
 from digitemp.device import TemperatureSensor
 from digitemp.exceptions import DeviceError, AdapterError
 
-#to add new physical PSU or sensor
+# to add new physical PSU or sensor
 #   1)import the module
 #   2)Add, into the applicable dictionary, the name as it will appear in the application's menus
 #       and the class as is named in the PSU's module
@@ -24,4 +24,4 @@ temperature_matches_for_stable = 5
 heater_resistance = 32
 heater_max_power = 150
 
-shutdown_temperature = 100
+shutdown_temperature = 80

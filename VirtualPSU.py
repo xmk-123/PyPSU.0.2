@@ -107,8 +107,9 @@ class VirtualPSU(QWidget):
             self.VSTARTwidget.widgetSpinbox.setValue(self.VENDwidget.widgetSpinbox.value())
 
     def disablespinbxs(self, disable):
+        # print(disable or self.physical_psu_objects_list[0].name == "Empty PSU")
         for widget in self._PSUlayout.parentWidget().findChildren(QDoubleSpinBox):
-            widget.setDisabled(disable)
+            widget.setDisabled(disable or self.physical_psu_objects_list[0].name == "Empty PSU")
 
     def setvoltage(self, _voltage):
         if self._multiple_physical_PSUs:
