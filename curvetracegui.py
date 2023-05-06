@@ -3,6 +3,7 @@ import time
 
 from PyQt5.QtCore import pyqtSignal, QThread
 from match_win import MatchWindow
+from parameters import ParametersDialog
 from plot import PlotWin
 from setup import PsuInitWindow
 from PyQt5 import QtCore
@@ -14,8 +15,6 @@ import traceroutine
 from powersupply_EMPTY import EmptyPSU
 from VirtualPSU import VirtualPSU
 from temperature_controller import TemperatureWorker
-
-ask_to_save = True
 
 
 class MainWindow(QMainWindow):
@@ -48,12 +47,11 @@ class MainWindow(QMainWindow):
         _menuBar.addMenu(file_menu)
 
         _savesettingsMenuItem = QAction(QIcon(), '&Save startup Settings', self)
-        # _savesettingsMenuItem.setStatusTip('New document')
+        # _savesettingsMenuItem.setStatusTip('New')
         _savesettingsMenuItem.triggered.connect(self.PsuSetupWin.savesettings)
         file_menu.addAction(_savesettingsMenuItem)
 
         _clearsettingsMenuItem = QAction(QIcon(), '&Clear startup Settings', self)
-        # _clearsettingsMenuItem.setStatusTip('New document')
         _clearsettingsMenuItem.triggered.connect(lambda: self.PsuSetupWin.settings.clear())
         file_menu.addAction(_clearsettingsMenuItem)
 
@@ -61,7 +59,15 @@ class MainWindow(QMainWindow):
         _resetasktosave.triggered.connect(self.reset_ask_to_save)
         file_menu.addAction(_resetasktosave)
 
+        _parameters = QAction(QIcon(), 'Set parameters', self)
+        _parameters.triggered.connect(self.parameters)
+        file_menu.addAction(_parameters)
+
         self.PsuSetupWin.applysettings()
+
+    def parameters(self):
+        dialog = ParametersDialog()
+        dialog.exec_()
 
     def reset_ask_to_save(self):
         self.ask_to_save = True
@@ -91,15 +97,15 @@ class MainWindow(QMainWindow):
 
     # top center pane start
 
-        self.PsuVgsLabel = QLabel(self.PSUdict["Vgs PSU"].name)
-        self.PsuVgsLabel.setMinimumSize(110, 50)
-        _layouttopcentertopH.addWidget(self.PsuVgsLabel)
+        _PsuVgsLabel = QLabel(self.PSUdict["Vgs PSU"].name)
+        _PsuVgsLabel.setMinimumSize(110, 50)
+        _layouttopcentertopH.addWidget(_PsuVgsLabel)
 
         _layouttopcentertopH.addStretch()
 
-        self.PsuVdsLabel = QLabel(self.PSUdict["Vds PSU"].name)
-        self.PsuVdsLabel.setMinimumSize(110, 50)
-        _layouttopcentertopH.addWidget(self.PsuVdsLabel)
+        _PsuVdsLabel = QLabel(self.PSUdict["Vds PSU"].name)
+        _PsuVdsLabel.setMinimumSize(110, 50)
+        _layouttopcentertopH.addWidget(_PsuVdsLabel)
 
         # top center top end
         # top center middle start
@@ -195,9 +201,12 @@ class MainWindow(QMainWindow):
 
     def savecurves(self):
         saveFile = QFileDialog.getSaveFileName()[0]
-        with open(saveFile, 'w') as f:
-            f.write(str(self.data))
-        self.last_saved = True
+        try:
+            with open(saveFile, 'w') as f:
+                f.write(str(self.data))
+            self.last_saved = True
+        except FileNotFoundError as e:
+            pass
 
     def start_tracing(self):
         if self.PSUdict["Vds PSU"].name != "Empty PSU":
@@ -279,12 +288,23 @@ class MainWindow(QMainWindow):
             self.temperature_thread.finished.connect(self.temperature_thread.deleteLater)
             self.temperature_worker.finished.connect(self.temperature_thread.quit)
             self.temperature_worker.finished.connect(self.temperature_worker.deleteLater)
+            self.temperature_worker.overheat.connect(self.overheat_action)
 
             self.temperature_worker.temperature_data.connect(lambda x: self.dut_widgets.TemperatureIndicator.setText(str(x)))
             self.temperature_worker.temp_stable.connect(lambda x: self.temperature_stable.update({"status": x}))
 
             self.temperature_thread.start()
 
+    def overheat_action(self):
+        print("overheat")
+        self.stop_tracing()
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setText("Max temp exceeded")
+        msg.setInformativeText(self.dut_widgets.TemperatureIndicator.text() + "C --- Temperature exceeded MAX temp allowed")
+        msg.setDetailedText("To change MAX temperature allowed goto Menu - Parameters")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec()
     def stop_tracing(self):
         try:
             self.tracing_thread.requestInterruption()
@@ -327,7 +347,7 @@ class MainWindow(QMainWindow):
         self.psuVdsbutton.button.setDisabled(freeze)
         self.PSUdict["Vgs PSU"].disablespinbxs(freeze)
         self.PSUdict["Vds PSU"].disablespinbxs(freeze)
-        self.dut_widgets.TemperatureIndicator.setDisabled(freeze)
+        # self.dut_widgets.TemperatureIndicator.setDisabled(freeze)
         self.dut_widgets.TempSpinbox.setDisabled(freeze)
         self.dut_widgets.DUTMaxPSpinbox.setDisabled(freeze)
         self.smoothcurveCheckB.setDisabled(freeze)

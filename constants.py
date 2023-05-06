@@ -17,11 +17,3 @@ physicalpsusClasses = {"Korad": KORAD,
 
 temperatureSensorsClasses = {"DS18B20": TemperatureSensor}
 
-temperature_allowance = 0.1
-
-temperature_matches_for_stable = 5
-
-heater_resistance = 32
-heater_max_power = 150
-
-shutdown_temperature = 80

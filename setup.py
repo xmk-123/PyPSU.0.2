@@ -49,23 +49,23 @@ class PsuInitWindow(QMainWindow):
         _1sthorizlayout = QHBoxLayout()
 
         _psusLayout = QVBoxLayout()
-        self.PsusLabel = QLabel("PSUs list")
-        self.PsusLabel.setMinimumSize(150, 50)
-        _psusLayout.addWidget(self.PsusLabel)
+        _PsusLabel = QLabel("PSUs list")
+        _PsusLabel.setMinimumSize(150, 50)
+        _psusLayout.addWidget(_PsusLabel)
 
         self.PSUsListWidget = QListWidget()
         self.PSUsListWidget.addItems([v for v in physicalpsusClasses.keys() if v != "Empty PSU"])
         self.PSUsListWidget.setMinimumSize(250, 35)
         self.PSUsListWidget.adjustSize()
         self.PSUsListWidget.currentItemChanged.connect(
-            lambda p: self.connect_physical_PSU_button.setText("Init\n %s PSU" % p.text()))
+            lambda p: _connect_physical_PSU_button.setText("Connect\n %s PSU" % p.text()))
         _psusLayout.addWidget(self.PSUsListWidget)
         _1sthorizlayout.addLayout(_psusLayout)
 
         _portsLayout = QVBoxLayout()
-        self.PortsLabel = QLabel("Ports list")
-        self.PortsLabel.setMinimumSize(150, 50)
-        _portsLayout.addWidget(self.PortsLabel)
+        _PortsLabel = QLabel("Ports list")
+        _PortsLabel.setMinimumSize(150, 50)
+        _portsLayout.addWidget(_PortsLabel)
 
         self.PortsListWidget = QListWidget()
         self.PortsListWidget.addItems(self.serial_ports())
@@ -75,9 +75,9 @@ class PsuInitWindow(QMainWindow):
         _1sthorizlayout.addLayout(_portsLayout)
 
         _SensorLayout = QVBoxLayout()
-        self.SensorLabel = QLabel("Sensors list")
-        self.SensorLabel.setMinimumSize(150, 50)
-        _SensorLayout.addWidget(self.SensorLabel)
+        _SensorLabel = QLabel("Sensors list")
+        _SensorLabel.setMinimumSize(150, 50)
+        _SensorLayout.addWidget(_SensorLabel)
 
         self.SensorListWidget = QListWidget()
         self.SensorListWidget.addItems(([t for t in temperatureSensorsClasses.keys()]))
@@ -91,40 +91,40 @@ class PsuInitWindow(QMainWindow):
 
         _2ndhorizlayout = QHBoxLayout()
 
-        self.connect_physical_PSU_button = QPushButton("Connect PSU")
-        self.connect_physical_PSU_button.clicked.connect(self.checkandconnect_physical_psu)
-        _2ndhorizlayout.addWidget(self.connect_physical_PSU_button)
+        _connect_physical_PSU_button = QPushButton("Connect PSU")
+        _connect_physical_PSU_button.clicked.connect(self.checkandconnect_physical_psu)
+        _2ndhorizlayout.addWidget(_connect_physical_PSU_button)
 
-        self.updateportsbutton = QPushButton("Update\nPorts")
-        self.updateportsbutton.clicked.connect(self.refreshports)
-        _2ndhorizlayout.addWidget(self.updateportsbutton)
+        _updateportsbutton = QPushButton("Update\nPorts")
+        _updateportsbutton.clicked.connect(self.refreshports)
+        _2ndhorizlayout.addWidget(_updateportsbutton)
 
-        self.connect_sensor_button = QPushButton("Connect\nsensor")
-        self.connect_sensor_button.clicked.connect(self.checkandconnect_sensor)
-        _2ndhorizlayout.addWidget(self.connect_sensor_button)
+        _connect_sensor_button = QPushButton("Connect\nsensor")
+        _connect_sensor_button.clicked.connect(self.checkandconnect_sensor)
+        _2ndhorizlayout.addWidget(_connect_sensor_button)
         _INITlayout.addLayout(_2ndhorizlayout)
 
-        separator_1 = QFrame()
-        separator_1.setFrameShape(QFrame.HLine)
-        separator_1.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
-        separator_1.setLineWidth(5)
+        _separator_1 = QFrame()
+        _separator_1.setFrameShape(QFrame.HLine)
+        _separator_1.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        _separator_1.setLineWidth(5)
 
-        separator_2 = QFrame()
-        separator_2.setFrameShape(QFrame.HLine)
-        separator_2.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
-        separator_2.setLineWidth(5)
+        _separator_2 = QFrame()
+        _separator_2.setFrameShape(QFrame.HLine)
+        _separator_2.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        _separator_2.setLineWidth(5)
 
-        _INITlayout.addWidget(separator_1)
-        _INITlayout.addWidget(separator_2)
+        _INITlayout.addWidget(_separator_1)
+        _INITlayout.addWidget(_separator_2)
 
 # *************** PSUs used by Vgs PSU
         _3rddhorizlayout = QHBoxLayout()
 
         _VgsPSUlayout = QVBoxLayout()
 
-        self.VgsPSULabel = QLabel("In use by Vgs PSU")
-        self.VgsPSULabel.setMinimumSize(150, 50)
-        _VgsPSUlayout.addWidget(self.VgsPSULabel)
+        _VgsPSULabel = QLabel("In use by Vgs PSU")
+        _VgsPSULabel.setMinimumSize(150, 50)
+        _VgsPSUlayout.addWidget(_VgsPSULabel)
 
         self.VgsPSUsListWidget = QListWidget()
         self.VgsPSUsListWidget.setObjectName("Vgs PSU")
@@ -141,12 +141,12 @@ class PsuInitWindow(QMainWindow):
 
         # *************** test PSU -- Polarity radio buttons
 
-        self.TestVgsButton = QPushButton('Test')
-        self.TestVgsButton.setMinimumSize(150, 65)
-        self.TestVgsButton.pressed.connect(lambda: self.test_psu("Vgs PSU"))
-        _VgsPSUlayout.addWidget(self.TestVgsButton)
+        _TestVgsButton = QPushButton('Test')
+        _TestVgsButton.setMinimumSize(150, 65)
+        _TestVgsButton.pressed.connect(lambda: self.test_psu("Vgs PSU"))
+        _VgsPSUlayout.addWidget(_TestVgsButton)
 
-        self._VgsRadioButtonGrp = QButtonGroup()
+        _VgsRadioButtonGrp = QButtonGroup()
         _polarityVgsPSUlayout = QVBoxLayout()
         vgs_polarity = QRadioButton("Source negative")
         _VgsPSUlayout.addWidget(vgs_polarity)
@@ -156,8 +156,8 @@ class PsuInitWindow(QMainWindow):
         _VgsPSUlayout.addWidget(vgs_polarity2)
         vgs_polarity2.setChecked(not self.PSUdict["Vgs PSU"].polarity)
 
-        self._VgsRadioButtonGrp.addButton(vgs_polarity)
-        self._VgsRadioButtonGrp.addButton(vgs_polarity2)
+        _VgsRadioButtonGrp.addButton(vgs_polarity)
+        _VgsRadioButtonGrp.addButton(vgs_polarity2)
 
         _VgsPSUlayout.addLayout(_polarityVgsPSUlayout)
         _3rddhorizlayout.addLayout(_VgsPSUlayout)
@@ -168,9 +168,9 @@ class PsuInitWindow(QMainWindow):
 
         _initPSUlayout = QVBoxLayout()
 
-        self.AvailablePsusLabel = QLabel("Available PSUs")
-        self.AvailablePsusLabel.setMinimumSize(150, 50)
-        _initPSUlayout.addWidget(self.AvailablePsusLabel)
+        _AvailablePsusLabel = QLabel("Available PSUs")
+        _AvailablePsusLabel.setMinimumSize(150, 50)
+        _initPSUlayout.addWidget(_AvailablePsusLabel)
 
         self.AvailablePSUsWidget = QListWidget()
         self.AvailablePSUsWidget.setSelectionMode(QListWidget.MultiSelection)  # to select multiple entries
@@ -189,15 +189,15 @@ class PsuInitWindow(QMainWindow):
         self.InitButton.pressed.connect(self.create_virtual_psus)
         _initPSUlayout.addWidget(self.InitButton)
 
-        self.DisconnectPhysicalPsuButton = QPushButton('Disconnect')
-        self.DisconnectPhysicalPsuButton.setMinimumSize(150, 65)
-        self.DisconnectPhysicalPsuButton.pressed.connect(self.disconnect_physical_psu)
-        _initPSUlayout.addWidget(self.DisconnectPhysicalPsuButton)
+        _DisconnectPhysicalPsuButton = QPushButton('Disconnect')
+        _DisconnectPhysicalPsuButton.setMinimumSize(150, 65)
+        _DisconnectPhysicalPsuButton.pressed.connect(self.disconnect_physical_psu)
+        _initPSUlayout.addWidget(_DisconnectPhysicalPsuButton)
 
-        self.ExitButton = QPushButton('Exit')
-        self.ExitButton.setMinimumSize(150, 65)
-        self.ExitButton.pressed.connect(self.hide)
-        _initPSUlayout.addWidget(self.ExitButton)
+        _ExitButton = QPushButton('Exit')
+        _ExitButton.setMinimumSize(150, 65)
+        _ExitButton.pressed.connect(self.hide)
+        _initPSUlayout.addWidget(_ExitButton)
 
         _3rddhorizlayout.addLayout(_initPSUlayout)
 
@@ -205,9 +205,9 @@ class PsuInitWindow(QMainWindow):
 
         _VdsPSUlayout = QVBoxLayout()
 
-        self.VdsPSUsListLabel = QLabel("In use by Vds PSU")
-        self.VdsPSUsListLabel.setMinimumSize(150, 50)
-        _VdsPSUlayout.addWidget(self.VdsPSUsListLabel)
+        _VdsPSUsListLabel = QLabel("In use by Vds PSU")
+        _VdsPSUsListLabel.setMinimumSize(150, 50)
+        _VdsPSUlayout.addWidget(_VdsPSUsListLabel)
 
         self.VdsPSUsListWidget = QListWidget()
         self.VdsPSUsListWidget.setObjectName("Vds PSU")
@@ -223,13 +223,12 @@ class PsuInitWindow(QMainWindow):
         _VdsPSUlayout.addStretch()
         # ***************  test PSU --Polarity
 
-        self.TestVdsButton = QPushButton('Test')
-        self.TestVdsButton.setMinimumSize(150, 65)
-        self.TestVdsButton.pressed.connect(lambda: self.background_color(self.VdsPSUsListWidget))
-        # self.TestVdsButton.pressed.connect(lambda: self.test_psu("Vds PSU"))
-        _VdsPSUlayout.addWidget(self.TestVdsButton)
+        _TestVdsButton = QPushButton('Test')
+        _TestVdsButton.setMinimumSize(150, 65)
+        _TestVdsButton.pressed.connect(lambda: self.test_psu("Vds PSU"))
+        _VdsPSUlayout.addWidget(_TestVdsButton)
 
-        self._VdsRadioButtonGrp = QButtonGroup()
+        _VdsRadioButtonGrp = QButtonGroup()
         _polarityVdsPSUlayout = QVBoxLayout()
         vds_polarity = QRadioButton("Source negative")
         _polarityVdsPSUlayout.addWidget(vds_polarity)
@@ -239,8 +238,8 @@ class PsuInitWindow(QMainWindow):
         _polarityVdsPSUlayout.addWidget(vds_polarity2)
         vds_polarity2.setChecked(not self.PSUdict["Vds PSU"].polarity)
 
-        self._VdsRadioButtonGrp.addButton(vds_polarity)
-        self._VdsRadioButtonGrp.addButton(vds_polarity2)
+        _VdsRadioButtonGrp.addButton(vds_polarity)
+        _VdsRadioButtonGrp.addButton(vds_polarity2)
 
         _VdsPSUlayout.addLayout(_polarityVdsPSUlayout)
 
@@ -250,18 +249,18 @@ class PsuInitWindow(QMainWindow):
 
         # *************** PSUs used by Heater
 
-        separator_3 = QFrame()
-        separator_3.setFrameShape(QFrame.VLine)
-        separator_3.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
-        separator_3.setLineWidth(5)
+        _separator_3 = QFrame()
+        _separator_3.setFrameShape(QFrame.VLine)
+        _separator_3.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        _separator_3.setLineWidth(5)
 
-        _3rddhorizlayout.addWidget(separator_3)
+        _3rddhorizlayout.addWidget(_separator_3)
 
         _HeaterPSUlayout = QVBoxLayout()
 
-        self.HeaterPSULabel = QLabel("In use by Heater")
-        self.HeaterPSULabel.setMinimumSize(150, 50)
-        _HeaterPSUlayout.addWidget(self.HeaterPSULabel)
+        _HeaterPSULabel = QLabel("In use by Heater")
+        _HeaterPSULabel.setMinimumSize(150, 50)
+        _HeaterPSUlayout.addWidget(_HeaterPSULabel)
 
         self.HeaterPSUsListWidget = QListWidget()
         self.HeaterPSUsListWidget.setObjectName("Heater PSU")
@@ -274,10 +273,10 @@ class PsuInitWindow(QMainWindow):
         self.HeaterPSUsListWidget.model().rowsRemoved.connect(lambda: self.background_color(self.HeaterPSUsListWidget))
         _HeaterPSUlayout.addWidget(self.HeaterPSUsListWidget)
 
-        self.TestHeaterButton = QPushButton('Test')
-        self.TestHeaterButton.setMinimumSize(150, 65)
-        self.TestHeaterButton.pressed.connect(lambda: self.test_psu("Heater PSU"))
-        _HeaterPSUlayout.addWidget(self.TestHeaterButton)
+        _TestHeaterButton = QPushButton('Test')
+        _TestHeaterButton.setMinimumSize(150, 65)
+        _TestHeaterButton.pressed.connect(lambda: self.test_psu("Heater PSU"))
+        _HeaterPSUlayout.addWidget(_TestHeaterButton)
 
         _3rddhorizlayout.addLayout(_HeaterPSUlayout)
 
@@ -287,18 +286,18 @@ class PsuInitWindow(QMainWindow):
 
         _sensorConnectedlayout = QVBoxLayout()
 
-        self.sensorConnectedLabel = QLabel("Temperature sensor")
-        self.sensorConnectedLabel.setMinimumSize(150, 50)
-        _sensorConnectedlayout.addWidget(self.sensorConnectedLabel)
+        _sensorConnectedLabel = QLabel("Temperature sensor")
+        _sensorConnectedLabel.setMinimumSize(150, 50)
+        _sensorConnectedlayout.addWidget(_sensorConnectedLabel)
 
         self.sensorConnectedPlaceholder = QLabel()
         self.sensorConnectedPlaceholder.setMinimumSize(150, 50)
         _sensorConnectedlayout.addWidget(self.sensorConnectedPlaceholder)
 
-        self.DisconnectSensorButton = QPushButton('Disconnect sensor')
-        self.DisconnectSensorButton.setMinimumSize(150, 65)
-        self.DisconnectSensorButton.pressed.connect(self.disconnect_sensor)
-        _sensorConnectedlayout.addWidget(self.DisconnectSensorButton)
+        _DisconnectSensorButton = QPushButton('Disconnect sensor')
+        _DisconnectSensorButton.setMinimumSize(150, 65)
+        _DisconnectSensorButton.pressed.connect(self.disconnect_sensor)
+        _sensorConnectedlayout.addWidget(_DisconnectSensorButton)
         _sensorConnectedlayout.addStretch()
 
         _3rddhorizlayout.addLayout(_sensorConnectedlayout)
@@ -367,13 +366,13 @@ class PsuInitWindow(QMainWindow):
             self.refreshports()
 
     def serial_ports(self):
-        result = ([comport.device for comport in serial.tools.list_ports.comports()])
-        result.append("Test_Vgs_Port")
-        result.append("Test_Vds_Port")
+        _result = ([comport.device for comport in serial.tools.list_ports.comports()])
+        _result.append("Test_Vgs_Port")
+        _result.append("Test_Vds_Port")
         for p in usedports:
-            if p in result:
-                result.remove(p)
-        return result
+            if p in _result:
+                _result.remove(p)
+        return _result
 
     def refreshports(self):
         self.PortsListWidget.clear()
@@ -381,22 +380,22 @@ class PsuInitWindow(QMainWindow):
 
     def checkandconnect_physical_psu(self):
         if len(self.PSUsListWidget.selectedItems()) > 0 and len(self.PortsListWidget.selectedItems()) > 0:
-            ready_psu_name = self.connect_physical_psu(physicalpsusClasses[self.PSUsListWidget.currentItem().text()],
-                                                       self.PortsListWidget.currentItem().text(), True)
-            self.AvailablePSUsWidget.addItem(ready_psu_name)
+            _ready_psu_name = self.connect_physical_psu(physicalpsusClasses[self.PSUsListWidget.currentItem().text()],
+                                                        self.PortsListWidget.currentItem().text(), True)
+            self.AvailablePSUsWidget.addItem(_ready_psu_name)
             self.PortsListWidget.takeItem(self.PortsListWidget.currentRow())
             self.refreshports()
 
     def connect_physical_psu(self, _psu_class, _selected_port, verbose=False):
         try:
-            physical_psu_instance = _psu_class(_selected_port)
-            ready_psu_name = str(physical_psu_instance.name + " / " + physical_psu_instance.MODEL +
-                                 "\n   at port: " + physical_psu_instance.port)
-            physical_psu_instance.name = ready_psu_name
-            AvailablePSUs.update({ready_psu_name: physical_psu_instance})
+            _physical_psu_instance = _psu_class(_selected_port)
+            _ready_psu_name = str(_physical_psu_instance.name + " / " + _physical_psu_instance.MODEL +
+                                 "\n   at port: " + _physical_psu_instance.port)
+            _physical_psu_instance.name = _ready_psu_name
+            AvailablePSUs.update({_ready_psu_name: _physical_psu_instance})
             usedports.append(_selected_port)
             self.refreshports()
-            return ready_psu_name
+            return _ready_psu_name
 
         except (IOError, RuntimeError) as e:
             if verbose:
@@ -421,7 +420,6 @@ class PsuInitWindow(QMainWindow):
         _VdsPSUsSelected = [str(self.VdsPSUsListWidget.item(i).text()) for i in range(self.VdsPSUsListWidget.count())]
         _HeaterPSUsSelected = [str(self.HeaterPSUsListWidget.item(i).text()) for i in range(self.HeaterPSUsListWidget.count())]
 
-        # for names, key in [(_VgsPSUsSelected, "Vgs PSU"), (_VdsPSUsSelected, "Vds PSU"), (_HeaterPSUsSelected, "Heater PSU")]:
         for names, list_object in [(_VgsPSUsSelected, self.VgsPSUsListWidget),
                            (_VdsPSUsSelected, self.VdsPSUsListWidget),
                            (_HeaterPSUsSelected, self.HeaterPSUsListWidget)]:
@@ -508,32 +506,32 @@ class PsuInitWindow(QMainWindow):
 
     def savesettings(self):
 
-        vgs_psu_class_names_and_ports = []
-        vds_psu_class_names_and_ports = []
-        heater_psu_class_names_and_ports = []
+        _vgs_psu_class_names_and_ports = []
+        _vds_psu_class_names_and_ports = []
+        _heater_psu_class_names_and_ports = []
 
         for psu_object in self.PSUdict["Vgs PSU"].physical_psu_objects_list:
-            vgs_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
+            _vgs_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
 
         for psu_object in self.PSUdict["Vds PSU"].physical_psu_objects_list:
-            vds_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
+            _vds_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
 
         for psu_object in self.PSUdict["Heater PSU"].physical_psu_objects_list:
-            heater_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
+            _heater_psu_class_names_and_ports.append((getkey(psu_object.__class__), psu_object.port))
 
-        self.settings.setValue("Vgs physical PSU objects", vgs_psu_class_names_and_ports)
+        self.settings.setValue("Vgs physical PSU objects", _vgs_psu_class_names_and_ports)
         self.settings.setValue("Vgs PSU start", self.PSUdict["Vgs PSU"].VSTARTwidget.widgetSpinbox.value())
         self.settings.setValue("Vgs PSU end", self.PSUdict["Vgs PSU"].VENDwidget.widgetSpinbox.value())
         self.settings.setValue("Vgs PSU step", self.PSUdict["Vgs PSU"].STEPwidget.widgetSpinbox.value())
         self.settings.setValue("Vgs PSU Imax", self.PSUdict["Vgs PSU"].IMAXwidget.widgetSpinbox.value())
 
-        self.settings.setValue("Vds physical PSU objects", vds_psu_class_names_and_ports)
+        self.settings.setValue("Vds physical PSU objects", _vds_psu_class_names_and_ports)
         self.settings.setValue("Vds PSU start", self.PSUdict["Vds PSU"].VSTARTwidget.widgetSpinbox.value())
         self.settings.setValue("Vds PSU end", self.PSUdict["Vds PSU"].VENDwidget.widgetSpinbox.value())
         self.settings.setValue("Vds PSU step", self.PSUdict["Vds PSU"].STEPwidget.widgetSpinbox.value())
         self.settings.setValue("Vds PSU Imax", self.PSUdict["Vds PSU"].IMAXwidget.widgetSpinbox.value())
 
-        self.settings.setValue("Heater physical PSU objects", heater_psu_class_names_and_ports)
+        self.settings.setValue("Heater physical PSU objects", _heater_psu_class_names_and_ports)
 
         self.settings.setValue("Pmax", self.PSUdict["DUT settings"].DUTMaxPSpinbox.value())
         self.settings.setValue("Temp", self.PSUdict["DUT settings"].TempSpinbox.value())

@@ -1,11 +1,9 @@
 from math import sqrt
 from simple_pid import PID
 
-from constants import heater_resistance, heater_max_power
-
 
 class HeaterPID:
-    def __init__(self, heater_PSU, target_temperature, sample_time):
+    def __init__(self, heater_PSU, target_temperature, sample_time, heater_resistance, heater_max_power):
         self.heater_PSU = heater_PSU
         self.heater_max_current = sqrt(heater_max_power / heater_resistance)
         self.heater_max_voltage = sqrt(heater_max_power * heater_resistance)
@@ -15,8 +13,7 @@ class HeaterPID:
         self.heater_PSU.enableoutput(True)
 
         self.pid = PID(Kp=15.7, Ki=0.058, Kd=0.0, setpoint=target_temperature, auto_mode=False)
-        self.pid_max_output = min(self.heater_max_voltage, self.heater_PSU.VMAX * 0.9)
-        self.pid.output_limits = (0, self.pid_max_output)
+        self.pid.output_limits = (0, min(self.heater_max_voltage, self.heater_PSU.VMAX))
         self.pid.sample_time = sample_time  # seconds
 
         self.last_temperature_reading = 0

@@ -199,6 +199,7 @@ class KORAD:
         v, i, mode = self._reading()
 
         while match < n:
+            print("physical reading" + str(n))
             vv, ii, ll = self._reading()
             if (abs(vv - v) <= self.VRESREAD) and (abs(ii - i) <= self.IRESREAD) and (ll == mode):
                 match += 1

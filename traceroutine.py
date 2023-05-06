@@ -1,6 +1,7 @@
 import time
 
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
+from PyQt5.QtWidgets import QMessageBox
 
 
 class Worker(QObject):
@@ -57,13 +58,27 @@ class Worker(QObject):
                 self._VgsPSU.setvoltage(_Vgs)
                 self.CheckStableTempandSetVoltage(self._VdsPSU, _Vds)
                 _data = self._read_psu(self._VdsPSU, 3)
-
                 _data.update({"Vgs": _Vgs})
+                if _data["mode"] == "CC":
+                    _data.update({"Vds": _Vds})
+                    _VdsEND = _Vds - self._VdsPSU.STEPwidget.widgetSpinbox.value()
                 self.newdata.emit(_data)
 
-                if _data["mode"] == "CC":
-                    print("CC")
-                    _VdsEND = _Vds - self._VdsPSU.STEPwidget.widgetSpinbox.value()
+                # moveon = False
+                # while moveon == False:
+                #     msg = QMessageBox()
+                #     msg.setIcon(QMessageBox.Information)
+                #     msg.setText(str(_data))
+                #     msg.setInformativeText("Press OK to retake the measurement or cancel to move on")
+                #     msg.setWindowTitle("La")
+                #     msg.setDetailedText("")
+                #     msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+                #     _response = msg.exec()
+                #     if _response == QMessageBox.Cancel:
+                #         moveon = True
+                #     else:
+                #         print(self._read_psu(self._VdsPSU, 3))
+
                 _Vds += self._VdsPSU.STEPwidget.widgetSpinbox.value()
 
             _Vds = self._VdsPSU.VSTARTwidget.widgetSpinbox.value()
@@ -82,9 +97,10 @@ class Worker(QObject):
     def _read_psu(self, _psu, times):
         reading = _psu.read(times)
         while reading["mode"] == "ERR":
-            reading = _psu.read(times)
-            print("Drifting")
-            print(reading)
+            if self.temperature_stable["status"]:
+                reading = _psu.read(times)
+                print("current Drifting")
+                print(reading)
         return reading
 
     def stop(self):

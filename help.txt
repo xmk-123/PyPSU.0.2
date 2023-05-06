@@ -1,0 +1,74 @@
+idea and some code from https://github.com/mbrennwa/PyPSUcurvetrace
+
+TemperatureSensr
+"DS18B20"
+
+https://pypi.org/project/pydigitemp/
+https://martybugs.net/electronics/tempsensor/usb.cgi
+
+
+PL2303TA USB-to-Serial Adapter
+adapter green + white to sensor white
+adapter red to sensor red
+adapter black to sensor black
+
+4k7 resistor between red and white of sensor (between red and green/white of adapter)
+
+________
+
+Heating block
+
+a series of power resistors , mounted on a heatsink where the DUT will be mounted too
+MUST update the parameters on the application before use.
+menu- parameters
+
+__________
+
+Step by step usage instructions
+
+run curvetracegui.py
+
+1) update the heating block parametes  Menu - parameters
+    skip if no heating block used
+2) open the PSU setup window by clicking either of the red/grey buttons named "PSU"
+    2.1) From the the "PSUs list" listbox , select the PSU
+    2.2) From the the "Ports list" listbox , select the port that the psu is connected on
+    2.3) Press the button under the PSUs list listbox that is reads: "Connect" and the PSU name
+            The connected PSU will apear in the "Available PSUs" listbox
+    2.4) repeat above for the rest of the PSUs
+
+    2.5)Drag and Drop from the "Available PSUs" listbox, the PSU into either the
+        "in use by Vgs PSU"
+        "in use by Vds PSU"
+        "in use by Heater"
+        listboxes
+    2.6) Under the Vgs and Vds listboxes and under the "Test" buttons , you can select the polarity of the PSU.
+           This does not affect physically the PSU. It is for the correct sign in the graph and tracing data.
+    2.7) The changed listbox will turn red. Press the button named "Create" to create the virtual PSUs
+    2.8)Select the sensor in the "sensor list" and the port in the "ports list" and then press the button "connect sensor"
+           under the sensor listbox. No need to press "create".
+    2.9) You can disconnect the created PSUs by draging then in the "available PSUs" listbox, select them and press "disconnect"
+    2.10) Press exit
+3) on the main window,
+    3.1) on the right side enter the start,end step voltages for the trace.
+    Enter the max current allowed and the max power allowed. These are the limits that the PSU will have.
+    In other words the DUT will not be subject to higher values.
+    3.2) if a temperature sensor is present, enter the temperature that the trace should use.
+        The app will wait until the temperature is at this number and stable.
+    3.3) repeat 3.1 for the Vgs PSU on the left side. This can be left empty if you are measuring a diode etc.
+            Also the current should be 0 in case of MOSFET
+    3.4) All these settings and the PSU setup can be saved in order for the app to begin with these next time you open the app.
+            Go to menu-save startup settings.
+            To reset got to menu-clear startup settings
+4)  Press the button in the middle to start the tracing procedure. At any time Press stop to stop.
+
+5)  Once the trace is complete , you can save the data by pressing "save" button on the top right side of the trace window
+    There is also a smooth checkbox and a plot power limit checkbox.
+
+6)  There is a second TAB named "Match"
+    6.1) press "Load curve" button to load saved curves. On the listbox , select the curves to show.
+    6.2) select only one curve from the listbox , and press "Set base curve" to indicate the base curve.
+    6.3)select only one curve from the listbox , and press "quantify" button below the plot window,
+    to quantify the differences between the base curve and the selected curve in the listbox
+    6.4) Press "clear base set" to remove the base set. Press "delete curve" to remove the curve set from the listbox
+
